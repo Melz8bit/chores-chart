@@ -29,7 +29,11 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
 - [ ] Let parents track their own chores, not just kids' — bigger than it looks: schema currently has
       `chores.assigned_member_id` reference only kids ("every chore assigned to exactly one kid" was a
       confirmed v1 decision), and kiosk/points/redemption flows all assume the assignee is a kid.
-- [ ] Lock down the Settings link so only parents can get in — require a parent PIN to enter Settings.
+- [x] Lock down the Settings link so only parents can get in — require a parent PIN to enter Settings.
+      Implemented as a UI-level gate (not new RLS — the tablet's session already legitimately belongs
+      to a parent): `families.settings_pin`, never client-readable (column-level SELECT revoke), only
+      exposed via `has_settings_pin()`/`verify_settings_pin()` boolean RPCs. Settings stays open until a
+      PIN is set; once set, re-entered via a 4-digit keypad on every visit (no persistence).
 
 ## Optional future ideas (not scheduled)
 
