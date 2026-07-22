@@ -2,6 +2,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const TABS = [
   { to: '/settings/members', label: 'Members' },
+  { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/chores', label: 'Chores' },
   { to: '/settings/family', label: 'Family' },
 ]

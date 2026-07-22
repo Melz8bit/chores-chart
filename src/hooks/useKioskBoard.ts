@@ -13,6 +13,8 @@ export interface KioskBoardRow {
   chore_emoji: string | null
   chore_notes: string | null
   chore_points: number
+  category_id: string | null
+  category_name: string | null
   frequency_type: ChoreFrequencyType
   times_per_period: number
   interval_days: number | null

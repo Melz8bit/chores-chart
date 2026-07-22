@@ -39,6 +39,28 @@ function groupByKid(rows: KioskBoardRow[]): KidBoard[] {
   return Array.from(kids.values())
 }
 
+interface CategoryBoard {
+  id: string | null
+  name: string
+  chores: KioskBoardRow[]
+}
+
+function groupByCategory(rows: KioskBoardRow[]): CategoryBoard[] {
+  const categories = new Map<string, CategoryBoard>()
+  for (const row of rows) {
+    const key = row.category_id ?? 'uncategorized'
+    if (!categories.has(key)) {
+      categories.set(key, {
+        id: row.category_id,
+        name: row.category_name ?? 'Uncategorized',
+        chores: [],
+      })
+    }
+    categories.get(key)!.chores.push(row)
+  }
+  return Array.from(categories.values())
+}
+
 function fireConfetti(target: HTMLElement) {
   const rect = target.getBoundingClientRect()
   confetti({
@@ -180,47 +202,58 @@ export function KioskPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] content-start gap-3">
-                  {kid.chores.map((chore) => {
-                    const done = chore.remaining <= 0
-                    const pending = pendingChoreId === chore.chore_id
-                    return (
-                      <div key={chore.chore_id} className="relative">
-                        <button
-                          type="button"
-                          disabled={done || pending}
-                          onClick={(e) => handleComplete(chore, kid.id, e.currentTarget)}
-                          className={`w-full flex flex-col items-center gap-1 rounded-xl border p-3 text-center transition ${
-                            done
-                              ? 'border-slate-200 bg-slate-100 opacity-50'
-                              : 'border-slate-200 bg-white hover:border-indigo-400 active:scale-95'
-                          }`}
-                        >
-                          <Emoji emoji={chore.chore_emoji} fallback="⭐" className="h-8 w-8" />
-                          <span className="text-sm font-medium text-slate-800">{chore.chore_name}</span>
-                          <span className="text-xs text-slate-500">
-                            {chore.chore_points} pts
-                            {chore.times_per_period > 1 &&
-                              ` · ${chore.completed_count}/${chore.times_per_period}`}
-                          </span>
-                        </button>
+                <div className="flex flex-col gap-4">
+                  {groupByCategory(kid.chores).map((category) => (
+                    <div key={category.id ?? 'uncategorized'}>
+                      <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">
+                        {category.name}
+                      </h3>
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] content-start gap-3">
+                        {category.chores.map((chore) => {
+                          const done = chore.remaining <= 0
+                          const pending = pendingChoreId === chore.chore_id
+                          return (
+                            <div key={chore.chore_id} className="relative">
+                              <button
+                                type="button"
+                                disabled={done || pending}
+                                onClick={(e) => handleComplete(chore, kid.id, e.currentTarget)}
+                                className={`w-full flex flex-col items-center gap-1 rounded-xl border p-3 text-center transition ${
+                                  done
+                                    ? 'border-slate-200 bg-slate-100 opacity-50'
+                                    : 'border-slate-200 bg-white hover:border-indigo-400 active:scale-95'
+                                }`}
+                              >
+                                <Emoji emoji={chore.chore_emoji} fallback="⭐" className="h-8 w-8" />
+                                <span className="text-sm font-medium text-slate-800">
+                                  {chore.chore_name}
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                  {chore.chore_points} pts
+                                  {chore.times_per_period > 1 &&
+                                    ` · ${chore.completed_count}/${chore.times_per_period}`}
+                                </span>
+                              </button>
 
-                        {chore.completed_count > 0 && (
-                          <button
-                            type="button"
-                            disabled={pending}
-                            onClick={() => handleUndo(chore, kid.id)}
-                            aria-label={`Undo last completion of ${chore.chore_name}`}
-                            className="absolute -top-2.5 -right-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 shadow-sm hover:border-red-300 hover:text-red-600 disabled:opacity-50"
-                          >
-                            ↺
-                          </button>
-                        )}
+                              {chore.completed_count > 0 && (
+                                <button
+                                  type="button"
+                                  disabled={pending}
+                                  onClick={() => handleUndo(chore, kid.id)}
+                                  aria-label={`Undo last completion of ${chore.chore_name}`}
+                                  className="absolute -top-2.5 -right-2.5 flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500 shadow-sm hover:border-red-300 hover:text-red-600 disabled:opacity-50"
+                                >
+                                  ↺
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
                   {kid.chores.length === 0 && (
-                    <p className="col-span-full text-sm text-slate-400">No chores right now.</p>
+                    <p className="text-sm text-slate-400">No chores right now.</p>
                   )}
                 </div>
               </section>

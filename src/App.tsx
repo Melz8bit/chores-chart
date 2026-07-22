@@ -7,6 +7,7 @@ import { RequireFamily } from './routes/RequireFamily'
 import { KioskPage } from './routes/KioskPage'
 import { SettingsLayout } from './routes/settings/SettingsLayout'
 import { MembersPage } from './routes/settings/MembersPage'
+import { CategoriesPage } from './routes/settings/CategoriesPage'
 import { ChoresPage } from './routes/settings/ChoresPage'
 import { FamilyPage } from './routes/settings/FamilyPage'
 
@@ -42,6 +43,7 @@ function App() {
         >
           <Route index element={<Navigate to="members" replace />} />
           <Route path="members" element={<MembersPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
           <Route path="chores" element={<ChoresPage />} />
           <Route path="family" element={<FamilyPage />} />
         </Route>

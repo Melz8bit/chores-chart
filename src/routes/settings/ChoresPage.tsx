@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
 import { useFamilyMembers } from '../../hooks/useFamilyMembers'
 import { useArchiveChore, useChores } from '../../hooks/useChores'
+import { useCategories } from '../../hooks/useCategories'
 import { describeFrequency } from '../../lib/choreFrequency'
 import { Modal } from '../../components/Modal'
 import { ChoreForm } from '../../components/ChoreForm'
@@ -9,11 +10,14 @@ import { KidAvatar } from '../../components/KidAvatar'
 import { Emoji } from '../../components/Emoji'
 import type { Chore } from '../../lib/database.types'
 
+const UNCATEGORIZED = { id: null as string | null, name: 'Uncategorized' }
+
 export function ChoresPage() {
   const { familyMember } = useCurrentFamilyMember()
   const familyId = familyMember?.family_id
   const { data: members = [] } = useFamilyMembers(familyId)
   const { data: chores = [], isLoading } = useChores(familyId)
+  const { data: categories = [] } = useCategories(familyId)
   const archiveChore = useArchiveChore(familyId)
 
   const kids = members.filter((m) => m.kind === 'kid')
@@ -51,45 +55,58 @@ export function ChoresPage() {
               <KidAvatar emoji={kid.emoji} color={kid.color} size="sm" />
               {kid.display_name}
             </h3>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {kidChores.map((chore) => (
-                <li
-                  key={chore.id}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 flex flex-col gap-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-800 inline-flex items-center gap-1.5">
-                      {chore.emoji && <Emoji emoji={chore.emoji} className="h-4 w-4" />}
-                      {chore.name}
-                    </span>
-                    <span className="text-sm font-semibold text-indigo-600">
-                      {chore.points} pts
-                    </span>
-                  </div>
-                  <span className="text-sm text-slate-500">{describeFrequency(chore)}</span>
-                  <div className="flex justify-end gap-3 mt-2 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => setEditingChore(chore)}
-                      className="text-indigo-600 font-medium"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Remove "${chore.name}"? This can't be undone from here.`)) {
-                          archiveChore.mutate(chore.id)
-                        }
-                      }}
-                      className="text-slate-400 hover:text-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+
+            {[...categories, UNCATEGORIZED].map((category) => {
+              const categoryChores = kidChores.filter((c) => c.category_id === category.id)
+              if (categoryChores.length === 0) return null
+
+              return (
+                <div key={category.id ?? 'uncategorized'} className="mb-3 last:mb-0">
+                  <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">
+                    {category.name}
+                  </h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {categoryChores.map((chore) => (
+                      <li
+                        key={chore.id}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-3 flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-slate-800 inline-flex items-center gap-1.5">
+                            {chore.emoji && <Emoji emoji={chore.emoji} className="h-4 w-4" />}
+                            {chore.name}
+                          </span>
+                          <span className="text-sm font-semibold text-indigo-600">
+                            {chore.points} pts
+                          </span>
+                        </div>
+                        <span className="text-sm text-slate-500">{describeFrequency(chore)}</span>
+                        <div className="flex justify-end gap-3 mt-2 text-sm">
+                          <button
+                            type="button"
+                            onClick={() => setEditingChore(chore)}
+                            className="text-indigo-600 font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`Remove "${chore.name}"? This can't be undone from here.`)) {
+                                archiveChore.mutate(chore.id)
+                              }
+                            }}
+                            className="text-slate-400 hover:text-red-600"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
           </section>
         )
       })}
@@ -102,6 +119,7 @@ export function ChoresPage() {
           <ChoreForm
             familyId={familyId}
             kids={kids}
+            categories={categories}
             existingChore={editingChore === 'new' ? undefined : editingChore}
             onDone={() => setEditingChore(null)}
             onCancel={() => setEditingChore(null)}

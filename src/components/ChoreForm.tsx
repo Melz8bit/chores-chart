@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { Chore, ChoreFrequencyType, FamilyMember } from '../lib/database.types'
+import type { Category, Chore, ChoreFrequencyType, FamilyMember } from '../lib/database.types'
 import { FREQUENCY_OPTIONS, timesPerPeriodLabel } from '../lib/choreFrequency'
 import { useAddChore, useUpdateChore, type ChoreInput } from '../hooks/useChores'
 import { EmojiPicker } from './EmojiPicker'
@@ -8,12 +8,14 @@ import { KidSelect } from './KidSelect'
 export function ChoreForm({
   familyId,
   kids,
+  categories,
   existingChore,
   onDone,
   onCancel,
 }: {
   familyId: string
   kids: FamilyMember[]
+  categories: Category[]
   existingChore?: Chore
   onDone: () => void
   onCancel: () => void
@@ -36,6 +38,7 @@ export function ChoreForm({
   const [anchorDate, setAnchorDate] = useState(
     existingChore?.anchor_date ?? new Date().toISOString().slice(0, 10),
   )
+  const [categoryId, setCategoryId] = useState(existingChore?.category_id ?? '')
   const [error, setError] = useState<string | null>(null)
 
   const saving = addChore.isPending || updateChore.isPending
@@ -59,6 +62,7 @@ export function ChoreForm({
       timesPerPeriod,
       intervalDays: frequencyType === 'every_n_days' ? intervalDays : null,
       anchorDate: frequencyType === 'every_n_days' ? anchorDate : null,
+      categoryId: categoryId || null,
     }
 
     try {
@@ -92,6 +96,22 @@ export function ChoreForm({
       </label>
 
       <EmojiPicker value={emoji} onChange={setEmoji} label="Emoji" />
+
+      <label className="flex flex-col gap-1 text-sm text-slate-700">
+        Category
+        <select
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+        >
+          <option value="">Uncategorized</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="flex flex-col gap-1 text-sm text-slate-700">
         Points

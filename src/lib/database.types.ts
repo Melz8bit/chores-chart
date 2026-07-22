@@ -37,6 +37,15 @@ export interface FamilyMember {
   created_at: string
 }
 
+export interface Category {
+  id: string
+  family_id: string
+  name: string
+  active: boolean
+  archived_at: string | null
+  created_at: string
+}
+
 export interface Chore {
   id: string
   family_id: string
@@ -49,6 +58,7 @@ export interface Chore {
   times_per_period: number
   interval_days: number | null
   anchor_date: string | null
+  category_id: string | null
   active: boolean
   archived_at: string | null
   created_at: string
