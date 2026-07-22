@@ -18,6 +18,10 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       (self-hosted runner on the Pi auto-deploys `git pull && docker compose up --build -d` on push
       to main) both wired up and confirmed working end-to-end. Plan changed from the original
       Vercel target since the Pi already runs the rest of the household's self-hosted apps.
+- [x] Chore categories: family-scoped, table-backed `categories` (name-only, no icon), nullable
+      `chores.category_id`. Chores grouped by category (with an Uncategorized bucket) on both the kiosk
+      board and Settings > Chores. Archiving a category reassigns its chores to Uncategorized rather than
+      letting them vanish. Not a pre-existing backlog item — added and shipped in the same session.
 
 ## Backlog
 
