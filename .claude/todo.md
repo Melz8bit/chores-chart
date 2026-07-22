@@ -12,7 +12,12 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       centering fixed (bundled Twemoji SVGs replacing native OS emoji fonts), kid-color-tinted kiosk cards,
       destructive-action confirmations, fragile error-message matching fixed, loading/empty/error states
       audited across every route. Remaining nice-to-haves split out to Backlog below (favicon, login polish, etc).
-- [ ] Phase 8: Deploy to Vercel
+- [x] Phase 8: Deploy — containerized (Dockerfile + compose.yml, multi-stage node build -> nginx,
+      SPA fallback) and self-hosted on the Raspberry Pi via Docker + Cloudflare Tunnel, live at
+      chores.8bitcode.net (port 8001). GitHub Actions CI (lint + typecheck on push/PR) and CD
+      (self-hosted runner on the Pi auto-deploys `git pull && docker compose up --build -d` on push
+      to main) both wired up and confirmed working end-to-end. Plan changed from the original
+      Vercel target since the Pi already runs the rest of the household's self-hosted apps.
 
 ## Backlog
 
@@ -24,6 +29,7 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
 - [ ] Let parents track their own chores, not just kids' — bigger than it looks: schema currently has
       `chores.assigned_member_id` reference only kids ("every chore assigned to exactly one kid" was a
       confirmed v1 decision), and kiosk/points/redemption flows all assume the assignee is a kid.
+- [ ] Lock down the Settings link so only parents can get in — require a parent PIN to enter Settings.
 
 ## Optional future ideas (not scheduled)
 
