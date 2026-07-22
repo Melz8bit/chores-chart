@@ -1,0 +1,12 @@
+services:
+  chores-chart:
+    build:
+      context: .
+      args:
+        # VITE_* vars are baked into the JS bundle at build time, not read at
+        # container runtime, so they're passed as build args, not env_file.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    ports:
+      - '8001:80'
+    restart: unless-stopped

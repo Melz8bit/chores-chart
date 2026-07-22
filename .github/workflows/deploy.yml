@@ -1,0 +1,15 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull and rebuild
+        working-directory: /home/pi/chores-chart
+        run: |
+          git pull
+          docker compose --env-file .env.production up --build -d
