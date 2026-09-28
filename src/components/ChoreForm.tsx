@@ -123,6 +123,9 @@ export function ChoreForm({
           onChange={(e) => setPoints(Number(e.target.value))}
           className="rounded-lg border border-slate-300 px-3 py-2 text-base"
         />
+        <span className="text-xs text-slate-500">
+          Full amount. In school mode, school days earn ⅕ of this (rounded up).
+        </span>
       </label>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

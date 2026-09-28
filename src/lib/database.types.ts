@@ -14,6 +14,10 @@ export type ChoreFrequencyType =
 
 export type PointTransactionType = 'earned' | 'redeemed' | 'expired'
 
+export type PointsMode = 'vacation' | 'school'
+
+export type PointsDayKind = 'vacation' | 'school_day' | 'weekend' | 'holiday'
+
 export interface Family {
   id: string
   name: string
@@ -21,6 +25,8 @@ export interface Family {
   week_start_day: number
   invite_code: string
   last_expired_date: string | null
+  points_mode: PointsMode
+  holiday_date: string | null
   created_at: string
 }
 

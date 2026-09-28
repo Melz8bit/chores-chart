@@ -7,10 +7,15 @@ import { useCompleteChore } from '../hooks/useCompleteChore'
 import { useUncompleteChore } from '../hooks/useUncompleteChore'
 import { useCurrentFamilyMember } from '../hooks/useCurrentFamilyMember'
 import { useFullscreen } from '../hooks/useFullscreen'
+import { usePointsDay, useSetHoliday } from '../hooks/usePointsDay'
+import { useHasSettingsPin } from '../hooks/useSettingsPin'
+import type { PointsDayKind } from '../lib/database.types'
 import { KidAvatar } from '../components/KidAvatar'
 import { Emoji } from '../components/Emoji'
 import { RedemptionModal } from '../components/RedemptionModal'
 import { RedemptionHistory } from '../components/RedemptionHistory'
+import { Modal } from '../components/Modal'
+import { PinKeypad } from '../components/PinKeypad'
 
 interface KidBoard {
   id: string
@@ -61,6 +66,67 @@ function groupByCategory(rows: KioskBoardRow[]): CategoryBoard[] {
   return Array.from(categories.values())
 }
 
+const DAY_BADGES: Record<PointsDayKind, { label: string; className: string }> = {
+  school_day: { label: '🎒 School day · ⅕ points', className: 'bg-amber-100 text-amber-800' },
+  weekend: { label: '🎉 Weekend · full points', className: 'bg-emerald-100 text-emerald-800' },
+  holiday: { label: '🎈 Holiday · full points', className: 'bg-emerald-100 text-emerald-800' },
+  vacation: { label: '☀️ Vacation · full points', className: 'bg-sky-100 text-sky-800' },
+}
+
+// Parent confirmation for the holiday checkbox: PIN keypad when a Settings
+// PIN is set, a plain confirm otherwise. The PIN is checked server-side by
+// set_holiday, not here.
+function HolidayModal({
+  turningOn,
+  requirePin,
+  onClose,
+}: {
+  turningOn: boolean
+  requirePin: boolean
+  onClose: () => void
+}) {
+  const setHoliday = useSetHoliday()
+  const [error, setError] = useState<string | null>(null)
+
+  async function submit(pin: string | null) {
+    setError(null)
+    try {
+      await setHoliday.mutateAsync({ on: turningOn, pin })
+      onClose()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ''
+      setError(message.includes('Incorrect PIN') ? 'Incorrect PIN, try again.' : message || 'Something went wrong')
+    }
+  }
+
+  return (
+    <Modal title={turningOn ? 'Mark today as a holiday?' : 'Turn off holiday?'} onClose={onClose}>
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-sm text-slate-500 text-center">
+          {turningOn
+            ? 'Chores earn full points until the holiday ends at 8pm.'
+            : 'Chores go back to school-day points (⅕).'}
+        </p>
+        {requirePin ? (
+          <PinKeypad onComplete={submit} error={error} />
+        ) : (
+          <>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button
+              type="button"
+              disabled={setHoliday.isPending}
+              onClick={() => submit(null)}
+              className="rounded-lg bg-indigo-600 text-white font-medium px-4 py-2 disabled:opacity-50"
+            >
+              {turningOn ? 'Mark as holiday' : 'Turn off holiday'}
+            </button>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 function fireConfetti(target: HTMLElement) {
   const rect = target.getBoundingClientRect()
   confetti({
@@ -84,6 +150,14 @@ export function KioskPage() {
   const [error, setError] = useState<string | null>(null)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [showHolidayModal, setShowHolidayModal] = useState(false)
+  const { data: pointsDay } = usePointsDay()
+  const { data: hasPin } = useHasSettingsPin(familyMember?.family_id)
+
+  const isHoliday = pointsDay?.day_kind === 'holiday'
+  // Only meaningful on a school day in school mode (or to undo a holiday).
+  const showHolidayToggle =
+    pointsDay?.points_mode === 'school' && (pointsDay.day_kind === 'school_day' || isHoliday)
 
   const kids = groupByKid(rows)
 
@@ -127,7 +201,30 @@ export function KioskPage() {
   return (
     <div className="h-svh w-full flex flex-col bg-slate-50">
       <header className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-3 bg-white border-b border-slate-200">
-        <h1 className="text-lg sm:text-xl font-semibold text-slate-900">Chores</h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-lg sm:text-xl font-semibold text-slate-900">Chores</h1>
+          {pointsDay && (
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DAY_BADGES[pointsDay.day_kind].className}`}
+            >
+              {DAY_BADGES[pointsDay.day_kind].label}
+            </span>
+          )}
+          {showHolidayToggle && (
+            <label className="flex items-center gap-1.5 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={isHoliday}
+                onChange={(e) => {
+                  e.preventDefault()
+                  setShowHolidayModal(true)
+                }}
+                className="h-4 w-4 accent-indigo-600"
+              />
+              Holiday
+            </label>
+          )}
+        </div>
         <div className="flex items-center gap-4 text-sm">
           <button
             type="button"
@@ -266,6 +363,14 @@ export function KioskPage() {
         <RedemptionModal
           kids={kids.map((k) => ({ id: k.id, name: k.name, pointsBalance: k.pointsBalance }))}
           onClose={() => setShowRedeemModal(false)}
+        />
+      )}
+
+      {showHolidayModal && (
+        <HolidayModal
+          turningOn={!isHoliday}
+          requirePin={!!hasPin}
+          onClose={() => setShowHolidayModal(false)}
         />
       )}
 

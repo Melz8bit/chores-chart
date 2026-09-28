@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import type { Family } from '../../lib/database.types'
+import type { Family, PointsMode } from '../../lib/database.types'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
 import { useHasSettingsPin, useSetSettingsPin } from '../../hooks/useSettingsPin'
+import { useSetPointsMode } from '../../hooks/usePointsDay'
 import { Modal } from '../../components/Modal'
 import { PinKeypad } from '../../components/PinKeypad'
 
@@ -52,6 +53,20 @@ function SetPinModal({ familyId, onClose }: { familyId: string; onClose: () => v
   )
 }
 
+const POINTS_MODES: { value: PointsMode; label: string; description: string }[] = [
+  {
+    value: 'vacation',
+    label: '☀️ Vacation',
+    description: 'Every day earns full points.',
+  },
+  {
+    value: 'school',
+    label: '🎒 School',
+    description:
+      'School days earn ⅕ of the points (rounded up). Weekends and holidays earn full points. Days switch at 8pm, so Friday night counts as the weekend and Sunday night as a school day.',
+  },
+]
+
 export function FamilyPage() {
   const { familyMember } = useCurrentFamilyMember()
   const familyId = familyMember?.family_id
@@ -63,7 +78,9 @@ export function FamilyPage() {
     queryFn: async (): Promise<Family> => {
       const { data, error } = await supabase
         .from('families')
-        .select('id, name, timezone, week_start_day, invite_code, last_expired_date, created_at')
+        .select(
+          'id, name, timezone, week_start_day, invite_code, last_expired_date, points_mode, holiday_date, created_at',
+        )
         .eq('id', familyId as string)
         .single()
       if (error) throw error
@@ -74,6 +91,7 @@ export function FamilyPage() {
 
   const { data: hasPin } = useHasSettingsPin(familyId)
   const setPin = useSetSettingsPin(familyId)
+  const setPointsMode = useSetPointsMode(familyId)
 
   if (isLoading || !family) {
     return <p className="text-slate-500">Loading…</p>
@@ -108,6 +126,34 @@ export function FamilyPage() {
             {copied ? 'Copied!' : 'Copy'}
           </button>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="text-sm font-medium text-slate-700 mb-2">Points mode</h3>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          {POINTS_MODES.map((mode) => (
+            <button
+              key={mode.value}
+              type="button"
+              disabled={setPointsMode.isPending}
+              onClick={() => setPointsMode.mutate(mode.value)}
+              aria-pressed={family.points_mode === mode.value}
+              className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                family.points_mode === mode.value
+                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                  : 'border-slate-300 text-slate-600'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-sm text-slate-500">
+          {POINTS_MODES.find((mode) => mode.value === family.points_mode)?.description}
+        </p>
+        {setPointsMode.isError && (
+          <p className="text-sm text-red-600 mt-2">{setPointsMode.error.message}</p>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4">
