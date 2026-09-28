@@ -8,6 +8,7 @@ export interface ChoreInput {
   emoji: string
   notes: string
   points: number
+  schoolPoints: number | null
   frequencyType: ChoreFrequencyType
   timesPerPeriod: number
   intervalDays: number | null
@@ -23,6 +24,7 @@ function toRow(familyId: string, input: ChoreInput) {
     emoji: input.emoji || null,
     notes: input.notes || null,
     points: input.points,
+    school_points: input.schoolPoints,
     frequency_type: input.frequencyType,
     times_per_period: input.timesPerPeriod,
     interval_days: input.frequencyType === 'every_n_days' ? input.intervalDays : null,

@@ -4,6 +4,7 @@ import { useFamilyMembers } from '../../hooks/useFamilyMembers'
 import { useArchiveChore, useChores } from '../../hooks/useChores'
 import { useCategories } from '../../hooks/useCategories'
 import { describeFrequency } from '../../lib/choreFrequency'
+import { schoolDayPoints } from '../../lib/schoolPoints'
 import { Modal } from '../../components/Modal'
 import { ChoreForm } from '../../components/ChoreForm'
 import { KidAvatar } from '../../components/KidAvatar'
@@ -76,8 +77,11 @@ export function ChoresPage() {
                             {chore.emoji && <Emoji emoji={chore.emoji} className="h-4 w-4" />}
                             {chore.name}
                           </span>
-                          <span className="text-sm font-semibold text-indigo-600">
+                          <span className="text-sm font-semibold text-indigo-600 text-right">
                             {chore.points} pts
+                            <span className="block text-xs font-normal text-slate-500">
+                              {schoolDayPoints(chore)} on school days
+                            </span>
                           </span>
                         </div>
                         <span className="text-sm text-slate-500">{describeFrequency(chore)}</span>

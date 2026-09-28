@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Category, Chore, ChoreFrequencyType, FamilyMember } from '../lib/database.types'
 import { FREQUENCY_OPTIONS, timesPerPeriodLabel } from '../lib/choreFrequency'
+import { autoSchoolPoints } from '../lib/schoolPoints'
 import { useAddChore, useUpdateChore, type ChoreInput } from '../hooks/useChores'
 import { EmojiPicker } from './EmojiPicker'
 import { KidSelect } from './KidSelect'
@@ -30,6 +31,8 @@ export function ChoreForm({
   const [emoji, setEmoji] = useState(existingChore?.emoji ?? '')
   const [notes, setNotes] = useState(existingChore?.notes ?? '')
   const [points, setPoints] = useState(existingChore?.points ?? 10)
+  // '' = no custom value; school days use the automatic ⅓ rule.
+  const [schoolPoints, setSchoolPoints] = useState<number | ''>(existingChore?.school_points ?? '')
   const [frequencyType, setFrequencyType] = useState<ChoreFrequencyType>(
     existingChore?.frequency_type ?? 'daily',
   )
@@ -58,6 +61,7 @@ export function ChoreForm({
       emoji,
       notes,
       points,
+      schoolPoints: schoolPoints === '' ? null : schoolPoints,
       frequencyType,
       timesPerPeriod,
       intervalDays: frequencyType === 'every_n_days' ? intervalDays : null,
@@ -113,20 +117,39 @@ export function ChoreForm({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm text-slate-700">
-        Points
-        <input
-          required
-          type="number"
-          min={1}
-          value={points}
-          onChange={(e) => setPoints(Number(e.target.value))}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-base"
-        />
-        <span className="text-xs text-slate-500">
-          Full amount. In school mode, school days earn ⅓ of this (rounded up).
-        </span>
-      </label>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm text-slate-700">
+          Points (vacation / weekend)
+          <input
+            required
+            type="number"
+            min={1}
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+          />
+          <span className="text-xs text-slate-500">
+            The full amount — earned in vacation mode, and on weekends and holidays in school mode.
+          </span>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm text-slate-700">
+          School-day points
+          <input
+            type="number"
+            min={1}
+            value={schoolPoints}
+            placeholder={String(autoSchoolPoints(points))}
+            onChange={(e) => setSchoolPoints(e.target.value === '' ? '' : Number(e.target.value))}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+          />
+          <span className="text-xs text-slate-500">
+            {schoolPoints === ''
+              ? `Automatic: ${autoSchoolPoints(points)} (⅓ of ${points}, rounded up). Type a number to override.`
+              : `Custom value. Clear it to go back to automatic (${autoSchoolPoints(points)}, ⅓ rounded up).`}
+          </span>
+        </label>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm text-slate-700">

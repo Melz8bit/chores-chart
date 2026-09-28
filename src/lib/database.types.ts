@@ -60,6 +60,7 @@ export interface Chore {
   emoji: string | null
   notes: string | null
   points: number
+  school_points: number | null
   frequency_type: ChoreFrequencyType
   times_per_period: number
   interval_days: number | null
