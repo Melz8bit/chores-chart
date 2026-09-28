@@ -11,10 +11,10 @@ chore completion, points balance + redemption, a nightly points-expiry job, and 
 ## Commands
 
 ```
-npm run dev        # start Vite dev server with HMR
+npm run dev        # start Vite dev server with HMR on http://localhost:5181 (not the default 5173)
 npm run build      # tsc -b (typecheck, no emit) + vite build
 npm run lint        # oxlint
-npm run preview    # preview the production build locally
+npm run preview    # preview the production build locally on http://localhost:4181
 ```
 
 There is no test runner configured yet.
