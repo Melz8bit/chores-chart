@@ -22,8 +22,20 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       `chores.category_id`. Chores grouped by category (with an Uncategorized bucket) on both the kiosk
       board and Settings > Chores. Archiving a category reassigns its chores to Uncategorized rather than
       letting them vanish. Not a pre-existing backlog item — added and shipped in the same session.
+- [x] School / vacation points modes (2026-09-28): parent toggle in Settings > Family. School mode awards
+      ⅓ of a chore's points (rounded up) on school days; weekends, holidays, and vacation mode earn full
+      points. The points day rolls over at 8pm local (Friday night = weekend, Sunday night = school day).
+      Kiosk shows a day badge and a PIN-gated Holiday checkbox. Chores can optionally set a custom
+      `school_points` value instead of the automatic ⅓. Migrations 0019-0022.
 
 ## Backlog
+
+- [ ] Real-world test of school mode over the week of 2026-09-28: check the ⅓ split feels right, the
+      8pm Friday/Sunday rollover flips the badge and card values, and Holiday switches itself off after
+      8pm on the holiday. Adjust per-chore school-day values or the divisor based on how it goes.
+- [ ] Decide whether "weekends"-frequency chores should also follow the 8pm rollover. Right now they
+      only appear on the calendar weekend, so they're hidden Friday night even though points are
+      already at the weekend rate.
 
 - [ ] User account settings (update email and password)
 - [ ] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
@@ -40,6 +52,11 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       PIN is set; once set, re-entered via a 4-digit keypad on every visit (no persistence).
 
 ## Optional future ideas (not scheduled)
+
+- [ ] Safe testing environment: there's no staging backend, so local dev hits production Supabase. Quick
+      option: a separate test family signed up with an email alias (RLS isolates it). Fuller option: a
+      local Supabase stack (`supabase start` in Docker) with `supabase/migrations/` applied, to test
+      migrations before they go live.
 
 - [ ] Reusable "reset a kid's chores/points" tool (parent-facing settings action or admin script), instead of hand-writing
       one-off SQL each time. Prompted by manually resetting Lucas's test data via SQL Editor on 2026-07-03.
