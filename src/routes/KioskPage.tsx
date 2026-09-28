@@ -67,7 +67,7 @@ function groupByCategory(rows: KioskBoardRow[]): CategoryBoard[] {
 }
 
 const DAY_BADGES: Record<PointsDayKind, { label: string; className: string }> = {
-  school_day: { label: '🎒 School day · ⅕ points', className: 'bg-amber-100 text-amber-800' },
+  school_day: { label: '🎒 School day · ⅓ points', className: 'bg-amber-100 text-amber-800' },
   weekend: { label: '🎉 Weekend · full points', className: 'bg-emerald-100 text-emerald-800' },
   holiday: { label: '🎈 Holiday · full points', className: 'bg-emerald-100 text-emerald-800' },
   vacation: { label: '☀️ Vacation · full points', className: 'bg-sky-100 text-sky-800' },
@@ -105,7 +105,7 @@ function HolidayModal({
         <p className="text-sm text-slate-500 text-center">
           {turningOn
             ? 'Chores earn full points until the holiday ends at 8pm.'
-            : 'Chores go back to school-day points (⅕).'}
+            : 'Chores go back to school-day points (⅓).'}
         </p>
         {requirePin ? (
           <PinKeypad onComplete={submit} error={error} />

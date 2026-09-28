@@ -124,7 +124,7 @@ export function ChoreForm({
           className="rounded-lg border border-slate-300 px-3 py-2 text-base"
         />
         <span className="text-xs text-slate-500">
-          Full amount. In school mode, school days earn ⅕ of this (rounded up).
+          Full amount. In school mode, school days earn ⅓ of this (rounded up).
         </span>
       </label>
 

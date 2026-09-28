@@ -63,7 +63,7 @@ const POINTS_MODES: { value: PointsMode; label: string; description: string }[] 
     value: 'school',
     label: '🎒 School',
     description:
-      'School days earn ⅕ of the points (rounded up). Weekends and holidays earn full points. Days switch at 8pm, so Friday night counts as the weekend and Sunday night as a school day.',
+      'School days earn ⅓ of the points (rounded up). Weekends and holidays earn full points. Days switch at 8pm, so Friday night counts as the weekend and Sunday night as a school day.',
   },
 ]
 
