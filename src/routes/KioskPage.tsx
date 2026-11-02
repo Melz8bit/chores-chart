@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { supabase } from '../lib/supabase'
@@ -151,6 +151,25 @@ export function KioskPage() {
   const [showRedeemModal, setShowRedeemModal] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showHolidayModal, setShowHolidayModal] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close the mobile nav menu on outside tap or Escape.
+  useEffect(() => {
+    if (!menuOpen) return
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
   const { data: pointsDay } = usePointsDay()
   const { data: hasPin } = useHasSettingsPin(familyMember?.family_id)
 
@@ -198,9 +217,57 @@ export function KioskPage() {
     }
   }
 
+  function renderNavItems(inMenu: boolean) {
+    const item = inMenu ? 'block w-full text-left px-4 py-2.5 hover:bg-slate-50' : 'whitespace-nowrap'
+    const close = () => setMenuOpen(false)
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => {
+            close()
+            setShowHistory(true)
+          }}
+          disabled={!familyMember}
+          className={`${item} text-indigo-600 font-medium disabled:opacity-50`}
+        >
+          History
+        </button>
+        <Link to="/dashboard" onClick={close} className={`${item} text-indigo-600 font-medium`}>
+          Dashboard
+        </Link>
+        <Link to="/settings" onClick={close} className={`${item} text-indigo-600 font-medium`}>
+          Settings
+        </Link>
+        {fullscreenSupported && (
+          <button
+            type="button"
+            onClick={() => {
+              close()
+              toggleFullscreen()
+            }}
+            className={`${item} text-slate-500 font-medium`}
+          >
+            {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            close()
+            supabase.auth.signOut()
+          }}
+          className={`${item} text-slate-500 font-medium`}
+        >
+          Log out
+        </button>
+      </>
+    )
+  }
+
   return (
     <div className="h-svh w-full flex flex-col bg-slate-50">
-      <header className="shrink-0 flex items-center justify-between px-4 sm:px-8 py-3 bg-white border-b border-slate-200">
+      <header className="relative z-10 shrink-0 flex items-center justify-between gap-3 px-4 sm:px-8 py-3 bg-white border-b border-slate-200">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-lg sm:text-xl font-semibold text-slate-900">Chores</h1>
           {pointsDay && (
@@ -230,36 +297,37 @@ export function KioskPage() {
             type="button"
             onClick={() => setShowRedeemModal(true)}
             disabled={kids.length === 0}
-            className="rounded-lg bg-indigo-600 text-white font-medium px-3 py-1.5 disabled:opacity-50"
+            className="rounded-lg bg-indigo-600 text-white font-medium px-3 py-1.5 whitespace-nowrap disabled:opacity-50"
           >
             Redeem points
           </button>
-          <button
-            type="button"
-            onClick={() => setShowHistory(true)}
-            disabled={!familyMember}
-            className="text-indigo-600 font-medium disabled:opacity-50"
-          >
-            History
-          </button>
-          <Link to="/dashboard" className="text-indigo-600 font-medium">
-            Dashboard
-          </Link>
-          <Link to="/settings" className="text-indigo-600 font-medium">
-            Settings
-          </Link>
-          {fullscreenSupported && (
-            <button type="button" onClick={toggleFullscreen} className="text-slate-500 font-medium">
-              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+
+          {/* Desktop/tablet: secondary nav inline */}
+          <nav className="hidden md:flex items-center gap-4">{renderNavItems(false)}</nav>
+
+          {/* Mobile: secondary nav collapsed behind a menu button */}
+          <div ref={menuRef} className="relative md:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="kiosk-nav-menu"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                {menuOpen ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
+              </svg>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => supabase.auth.signOut()}
-            className="text-slate-500 font-medium"
-          >
-            Log out
-          </button>
+            {menuOpen && (
+              <nav
+                id="kiosk-nav-menu"
+                className="absolute right-0 top-full mt-2 z-20 w-48 flex flex-col rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+              >
+                {renderNavItems(true)}
+              </nav>
+            )}
+          </div>
         </div>
       </header>
 
