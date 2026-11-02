@@ -39,7 +39,10 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       itself is now a parent setting (Settings > Family, School mode only: 5pm–11pm or midnight;
       `families.rollover_hour`, migrations 0023-0024). Choosing midnight removes the mismatch entirely.
 
-- [ ] User account settings (update email and password)
+- [x] User account settings (update email and password). Settings > Account (2026-11-02): email change
+      via Supabase confirmation links (secure email change is on, so both addresses must confirm; the UI
+      says so), password change re-verifies the current password first. Error paths tested; the
+      successful password change and the email-confirmation round trip are still untested.
 - [ ] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
       manifest home-screen icon, see `public/manifest.webmanifest`)
 - [ ] Change "Chores" kiosk title (e.g. to the family name)
