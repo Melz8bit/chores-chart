@@ -30,12 +30,14 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
 
 ## Backlog
 
-- [ ] Real-world test of school mode over the week of 2026-09-28: check the ⅓ split feels right, the
+- [x] Real-world test of school mode over the week of 2026-09-28: check the ⅓ split feels right, the
       8pm Friday/Sunday rollover flips the badge and card values, and Holiday switches itself off after
       8pm on the holiday. Adjust per-chore school-day values or the divisor based on how it goes.
-- [ ] Decide whether "weekends"-frequency chores should also follow the 8pm rollover. Right now they
-      only appear on the calendar weekend, so they're hidden Friday night even though points are
-      already at the weekend rate.
+      Confirmed working as intended (2026-11-02), no adjustments needed.
+- [x] Decide whether "weekends"-frequency chores should also follow the 8pm rollover. Decided
+      (2026-11-02) to leave chore visibility on the calendar day for now. Instead, the rollover time
+      itself is now a parent setting (Settings > Family, School mode only: 5pm–11pm or midnight;
+      `families.rollover_hour`, migrations 0023-0024). Choosing midnight removes the mismatch entirely.
 
 - [ ] User account settings (update email and password)
 - [ ] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
