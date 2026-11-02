@@ -8,6 +8,7 @@ import { useUncompleteChore } from '../hooks/useUncompleteChore'
 import { useCurrentFamilyMember } from '../hooks/useCurrentFamilyMember'
 import { useFullscreen } from '../hooks/useFullscreen'
 import { usePointsDay, useSetHoliday } from '../hooks/usePointsDay'
+import { useFamily } from '../hooks/useFamily'
 import { useHasSettingsPin } from '../hooks/useSettingsPin'
 import type { PointsDayKind } from '../lib/database.types'
 import { formatRolloverHour } from '../lib/schoolPoints'
@@ -174,6 +175,7 @@ export function KioskPage() {
     }
   }, [menuOpen])
   const { data: pointsDay } = usePointsDay()
+  const { data: family } = useFamily(familyMember?.family_id)
   const { data: hasPin } = useHasSettingsPin(familyMember?.family_id)
 
   const isHoliday = pointsDay?.day_kind === 'holiday'
@@ -272,7 +274,7 @@ export function KioskPage() {
     <div className="h-svh w-full flex flex-col bg-slate-50">
       <header className="relative z-10 shrink-0 flex items-center justify-between gap-3 px-4 sm:px-8 py-3 bg-white border-b border-slate-200">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-lg sm:text-xl font-semibold text-slate-900">Chores</h1>
+          <h1 className="text-lg sm:text-xl font-semibold text-slate-900">{family?.name ?? ' '}</h1>
           {pointsDay && (
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${DAY_BADGES[pointsDay.day_kind].className}`}

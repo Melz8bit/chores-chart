@@ -1,8 +1,7 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { supabase } from '../../lib/supabase'
-import type { Family, PointsMode } from '../../lib/database.types'
+import { useState, type FormEvent } from 'react'
+import type { PointsMode } from '../../lib/database.types'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
+import { useFamily, useRenameFamily } from '../../hooks/useFamily'
 import { useHasSettingsPin, useSetSettingsPin } from '../../hooks/useSettingsPin'
 import { useSetPointsMode, useSetRolloverHour } from '../../hooks/usePointsDay'
 import { ROLLOVER_HOURS, formatRolloverHour } from '../../lib/schoolPoints'
@@ -54,6 +53,79 @@ function SetPinModal({ familyId, onClose }: { familyId: string; onClose: () => v
   )
 }
 
+// The family name doubles as the kiosk board's title, so it's editable here.
+function FamilyName({ familyId, name }: { familyId: string; name: string }) {
+  const renameFamily = useRenameFamily(familyId)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(name)
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    const trimmed = draft.trim()
+    if (!trimmed) return
+    if (trimmed !== name) {
+      try {
+        await renameFamily.mutateAsync(trimmed)
+      } catch {
+        return // error shown below the input via renameFamily.isError
+      }
+    }
+    setEditing(false)
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-3 mb-1">
+        <h2 className="text-lg font-semibold text-slate-900">{name}</h2>
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(name)
+            renameFamily.reset()
+            setEditing(true)
+          }}
+          className="text-sm font-medium text-indigo-600"
+        >
+          Rename
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-2">
+      <label className="flex flex-col gap-1 text-sm text-slate-700">
+        Family name (shown as the board's title)
+        <input
+          autoFocus
+          required
+          maxLength={40}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-base"
+        />
+      </label>
+      {renameFamily.isError && <p className="text-sm text-red-600">{renameFamily.error.message}</p>}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={renameFamily.isPending}
+          className="rounded-lg bg-indigo-600 text-white text-sm font-medium px-3 py-1.5 disabled:opacity-50"
+        >
+          {renameFamily.isPending ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="text-sm font-medium text-slate-500"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  )
+}
+
 const POINTS_MODES: { value: PointsMode; label: string; description: (rolloverHour: number) => string }[] = [
   {
     value: 'vacation',
@@ -76,21 +148,7 @@ export function FamilyPage() {
   const [copied, setCopied] = useState(false)
   const [showSetPin, setShowSetPin] = useState(false)
 
-  const { data: family, isLoading } = useQuery({
-    queryKey: ['family', familyId],
-    queryFn: async (): Promise<Family> => {
-      const { data, error } = await supabase
-        .from('families')
-        .select(
-          'id, name, timezone, week_start_day, invite_code, last_expired_date, points_mode, holiday_date, rollover_hour, created_at',
-        )
-        .eq('id', familyId as string)
-        .single()
-      if (error) throw error
-      return data
-    },
-    enabled: !!familyId,
-  })
+  const { data: family, isLoading } = useFamily(familyId)
 
   const { data: hasPin } = useHasSettingsPin(familyId)
   const setPin = useSetSettingsPin(familyId)
@@ -110,7 +168,7 @@ export function FamilyPage() {
   return (
     <div className="max-w-md flex flex-col gap-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-1">{family.name}</h2>
+        <FamilyName familyId={family.id} name={family.name} />
         <p className="text-sm text-slate-500">Timezone: {family.timezone}</p>
       </div>
 
