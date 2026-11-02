@@ -4,7 +4,8 @@ import { supabase } from '../../lib/supabase'
 import type { Family, PointsMode } from '../../lib/database.types'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
 import { useHasSettingsPin, useSetSettingsPin } from '../../hooks/useSettingsPin'
-import { useSetPointsMode } from '../../hooks/usePointsDay'
+import { useSetPointsMode, useSetRolloverHour } from '../../hooks/usePointsDay'
+import { ROLLOVER_HOURS, formatRolloverHour } from '../../lib/schoolPoints'
 import { Modal } from '../../components/Modal'
 import { PinKeypad } from '../../components/PinKeypad'
 
@@ -53,17 +54,19 @@ function SetPinModal({ familyId, onClose }: { familyId: string; onClose: () => v
   )
 }
 
-const POINTS_MODES: { value: PointsMode; label: string; description: string }[] = [
+const POINTS_MODES: { value: PointsMode; label: string; description: (rolloverHour: number) => string }[] = [
   {
     value: 'vacation',
     label: '☀️ Vacation',
-    description: 'Every day earns full points.',
+    description: () => 'Every day earns full points.',
   },
   {
     value: 'school',
     label: '🎒 School',
-    description:
-      'School days earn ⅓ of the points (rounded up). Weekends and holidays earn full points. Days switch at 8pm, so Friday night counts as the weekend and Sunday night as a school day.',
+    description: (rolloverHour) =>
+      rolloverHour === 0
+        ? 'School days earn ⅓ of the points (rounded up). Weekends and holidays earn full points. Days switch at midnight.'
+        : `School days earn ⅓ of the points (rounded up). Weekends and holidays earn full points. Days switch at ${formatRolloverHour(rolloverHour)}, so Friday night counts as the weekend and Sunday night as a school day.`,
   },
 ]
 
@@ -79,7 +82,7 @@ export function FamilyPage() {
       const { data, error } = await supabase
         .from('families')
         .select(
-          'id, name, timezone, week_start_day, invite_code, last_expired_date, points_mode, holiday_date, created_at',
+          'id, name, timezone, week_start_day, invite_code, last_expired_date, points_mode, holiday_date, rollover_hour, created_at',
         )
         .eq('id', familyId as string)
         .single()
@@ -92,6 +95,7 @@ export function FamilyPage() {
   const { data: hasPin } = useHasSettingsPin(familyId)
   const setPin = useSetSettingsPin(familyId)
   const setPointsMode = useSetPointsMode(familyId)
+  const setRolloverHour = useSetRolloverHour(familyId)
 
   if (isLoading || !family) {
     return <p className="text-slate-500">Loading…</p>
@@ -149,10 +153,30 @@ export function FamilyPage() {
           ))}
         </div>
         <p className="text-sm text-slate-500">
-          {POINTS_MODES.find((mode) => mode.value === family.points_mode)?.description}
+          {POINTS_MODES.find((mode) => mode.value === family.points_mode)?.description(family.rollover_hour)}
         </p>
+        {family.points_mode === 'school' && (
+          <label className="flex items-center gap-2 mt-3 text-sm text-slate-700">
+            New day starts at
+            <select
+              value={family.rollover_hour}
+              disabled={setRolloverHour.isPending}
+              onChange={(e) => setRolloverHour.mutate(Number(e.target.value))}
+              className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            >
+              {ROLLOVER_HOURS.map((hour) => (
+                <option key={hour} value={hour}>
+                  {formatRolloverHour(hour)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {setPointsMode.isError && (
           <p className="text-sm text-red-600 mt-2">{setPointsMode.error.message}</p>
+        )}
+        {setRolloverHour.isError && (
+          <p className="text-sm text-red-600 mt-2">{setRolloverHour.error.message}</p>
         )}
       </div>
 

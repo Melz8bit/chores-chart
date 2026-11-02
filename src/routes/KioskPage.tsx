@@ -10,6 +10,7 @@ import { useFullscreen } from '../hooks/useFullscreen'
 import { usePointsDay, useSetHoliday } from '../hooks/usePointsDay'
 import { useHasSettingsPin } from '../hooks/useSettingsPin'
 import type { PointsDayKind } from '../lib/database.types'
+import { formatRolloverHour } from '../lib/schoolPoints'
 import { KidAvatar } from '../components/KidAvatar'
 import { Emoji } from '../components/Emoji'
 import { RedemptionModal } from '../components/RedemptionModal'
@@ -79,10 +80,12 @@ const DAY_BADGES: Record<PointsDayKind, { label: string; className: string }> = 
 function HolidayModal({
   turningOn,
   requirePin,
+  rolloverHour,
   onClose,
 }: {
   turningOn: boolean
   requirePin: boolean
+  rolloverHour: number
   onClose: () => void
 }) {
   const setHoliday = useSetHoliday()
@@ -104,7 +107,7 @@ function HolidayModal({
       <div className="flex flex-col items-center gap-4">
         <p className="text-sm text-slate-500 text-center">
           {turningOn
-            ? 'Chores earn full points until the holiday ends at 8pm.'
+            ? `Chores earn full points until the holiday ends at ${formatRolloverHour(rolloverHour)}.`
             : 'Chores go back to school-day points (⅓).'}
         </p>
         {requirePin ? (
@@ -438,6 +441,7 @@ export function KioskPage() {
         <HolidayModal
           turningOn={!isHoliday}
           requirePin={!!hasPin}
+          rolloverHour={pointsDay?.rollover_hour ?? 20}
           onClose={() => setShowHolidayModal(false)}
         />
       )}

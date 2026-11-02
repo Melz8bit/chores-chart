@@ -5,6 +5,7 @@ import type { PointsDayKind, PointsMode } from '../lib/database.types'
 export interface PointsDay {
   points_mode: PointsMode
   day_kind: PointsDayKind
+  rollover_hour: number
 }
 
 export function usePointsDay() {
@@ -15,8 +16,8 @@ export function usePointsDay() {
       if (error) throw error
       return data[0] ?? null
     },
-    // Same reasoning as useKioskBoard: the kiosk stays open across the 8pm
-    // points-day rollover and needs to notice it on its own.
+    // Same reasoning as useKioskBoard: the kiosk stays open across the
+    // evening points-day rollover and needs to notice it on its own.
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   })
@@ -44,6 +45,21 @@ export function useSetPointsMode(familyId: string | undefined) {
     mutationFn: async (mode: PointsMode) => {
       if (!familyId) throw new Error('No family loaded yet')
       const { error } = await supabase.from('families').update({ points_mode: mode }).eq('id', familyId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      invalidatePointsQueries(queryClient)
+      queryClient.invalidateQueries({ queryKey: ['family', familyId] })
+    },
+  })
+}
+
+export function useSetRolloverHour(familyId: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (hour: number) => {
+      if (!familyId) throw new Error('No family loaded yet')
+      const { error } = await supabase.from('families').update({ rollover_hour: hour }).eq('id', familyId)
       if (error) throw error
     },
     onSuccess: () => {

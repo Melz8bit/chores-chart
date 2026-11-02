@@ -27,6 +27,7 @@ export interface Family {
   last_expired_date: string | null
   points_mode: PointsMode
   holiday_date: string | null
+  rollover_hour: number
   created_at: string
 }
 
