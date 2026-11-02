@@ -50,6 +50,9 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       to a parent): `families.settings_pin`, never client-readable (column-level SELECT revoke), only
       exposed via `has_settings_pin()`/`verify_settings_pin()` boolean RPCs. Settings stays open until a
       PIN is set; once set, re-entered via a 4-digit keypad on every visit (no persistence).
+- [ ] Notifications on the parent app when a child completes a chore
+- [ ] Notification prompt asking a parent (in the parent app) to approve when a child wants to redeem points
+- [ ] Mandatory chores that must be completed before a child can redeem points
 
 ## Optional future ideas (not scheduled)
 
