@@ -45,7 +45,8 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       successful password change and the email-confirmation round trip are still untested.
 - [ ] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
       manifest home-screen icon, see `public/manifest.webmanifest`)
-- [ ] Change "Chores" kiosk title (e.g. to the family name)
+- [x] Change "Chores" kiosk title (e.g. to the family name). Done 2026-11-02: the kiosk header shows
+      `families.name`, which parents can now rename in Settings > Family (shared `useFamily` hook).
 - [ ] Login page polish: icon/branding + forgot-password flow
 - [ ] Let parents track their own chores, not just kids' — bigger than it looks: schema currently has
       `chores.assigned_member_id` reference only kids ("every chore assigned to exactly one kid" was a
