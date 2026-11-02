@@ -10,6 +10,7 @@ import { MembersPage } from './routes/settings/MembersPage'
 import { CategoriesPage } from './routes/settings/CategoriesPage'
 import { ChoresPage } from './routes/settings/ChoresPage'
 import { FamilyPage } from './routes/settings/FamilyPage'
+import { AccountPage } from './routes/settings/AccountPage'
 
 // Recharts adds significant weight the kiosk board never needs — load the
 // dashboard route as its own chunk instead of bundling it into the app's
@@ -46,6 +47,7 @@ function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="chores" element={<ChoresPage />} />
           <Route path="family" element={<FamilyPage />} />
+          <Route path="account" element={<AccountPage />} />
         </Route>
         <Route
           path="/dashboard"

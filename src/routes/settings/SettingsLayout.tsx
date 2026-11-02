@@ -9,6 +9,7 @@ const TABS = [
   { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/chores', label: 'Chores' },
   { to: '/settings/family', label: 'Family' },
+  { to: '/settings/account', label: 'Account' },
 ]
 
 export function SettingsLayout() {
