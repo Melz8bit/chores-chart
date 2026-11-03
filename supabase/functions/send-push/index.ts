@@ -1,13 +1,19 @@
 // send-push: delivers Web Push notifications to registered parent devices
 // (public.push_subscriptions, 0025).
 //
-// Phase 1 only exposes the "Send test notification" path: a signed-in parent
-// asks for a test push to their *own current device*, identified by its
-// subscription endpoint. Later phases add server-triggered sends (chore
-// completed, daily report, redemption requests) on top of sendToSubscriptions.
+// Two ways in:
+// - Server-triggered (x-push-secret header): database triggers call this via
+//   pg_net with just an event type and a row id; the details are looked up
+//   here. Currently: { type: 'chore_completed', completion_id } (0027).
+// - "Send test notification" (user JWT): a signed-in parent asks for a test
+//   push to their *own current device*, identified by its endpoint.
+//
+// Deploy with **Verify JWT turned OFF**: pg_net requests carry no user JWT.
+// Each path authenticates itself instead (shared secret / auth.getUser()).
 //
 // Secrets (Supabase dashboard > Edge Functions > Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (e.g. mailto:you@example.com)
+//   PUSH_WEBHOOK_SECRET (must match the push_webhook_secret Vault secret)
 // SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are provided
 // automatically by the Edge Functions runtime.
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -81,13 +87,61 @@ function json(body: unknown, status = 200) {
   })
 }
 
+function familySubscriptions(familyId: string) {
+  return admin.from('push_subscriptions').select('id, endpoint, p256dh, auth').eq('family_id', familyId)
+}
+
+async function handleChoreCompleted(completionId: string) {
+  const { data: completion } = await admin
+    .from('chore_completions')
+    .select('id, family_id, chore_id, family_member_id, points_awarded')
+    .eq('id', completionId)
+    .maybeSingle()
+  if (!completion) return json({ error: 'Completion not found' }, 404)
+
+  const [{ data: chore }, { data: kid }, { data: rows }] = await Promise.all([
+    admin.from('chores').select('name, emoji').eq('id', completion.chore_id).single(),
+    admin.from('family_members').select('display_name').eq('id', completion.family_member_id).single(),
+    familySubscriptions(completion.family_id),
+  ])
+  if (!rows || rows.length === 0) return json({ delivered: 0 })
+
+  const choreName = [chore?.emoji, chore?.name].filter(Boolean).join(' ')
+  const points = completion.points_awarded
+  const delivered = await sendToSubscriptions(rows, {
+    title: `✅ ${kid?.display_name ?? 'A kid'} finished a chore`,
+    body: `${choreName} (+${points} ${points === 1 ? 'point' : 'points'})`,
+    url: '/',
+    tag: `completion-${completion.id}`,
+  })
+  return json({ delivered })
+}
+
+// Server-triggered requests. The secret only proves the caller is our own
+// database; the payload is just an id, and everything shown is looked up.
+async function handleServerEvent(req: Request) {
+  const expected = Deno.env.get('PUSH_WEBHOOK_SECRET')
+  if (!expected || req.headers.get('x-push-secret') !== expected) {
+    return json({ error: 'Forbidden' }, 403)
+  }
+  const body = (await req.json().catch(() => ({}))) as { type?: string; completion_id?: string }
+  if (body.type === 'chore_completed' && body.completion_id) {
+    return handleChoreCompleted(body.completion_id)
+  }
+  return json({ error: 'Unknown event' }, 400)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  // Identify the caller from their own JWT (the platform has already checked
-  // it's valid, since verify_jwt is on by default).
+  if (req.headers.has('x-push-secret')) {
+    return handleServerEvent(req)
+  }
+
+  // Test path: identify the caller from their own JWT. Verify JWT is off for
+  // this function (see top), so getUser() is what rejects bad/missing tokens.
   const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
     global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
   })

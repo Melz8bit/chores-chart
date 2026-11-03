@@ -76,6 +76,11 @@ export function ChoresPage() {
                           <span className="font-medium text-slate-800 inline-flex items-center gap-1.5">
                             {chore.emoji && <Emoji emoji={chore.emoji} className="h-4 w-4" />}
                             {chore.name}
+                            {chore.notify_on_complete && (
+                              <span title="Notifies parents when completed" aria-label="Notifies parents">
+                                <Emoji emoji="🔔" className="h-3.5 w-3.5" />
+                              </span>
+                            )}
                           </span>
                           <span className="text-sm font-semibold text-indigo-600 text-right">
                             {chore.points} pts

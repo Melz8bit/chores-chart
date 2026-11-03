@@ -14,6 +14,7 @@ export interface ChoreInput {
   intervalDays: number | null
   anchorDate: string | null
   categoryId: string | null
+  notifyOnComplete: boolean
 }
 
 function toRow(familyId: string, input: ChoreInput) {
@@ -30,6 +31,7 @@ function toRow(familyId: string, input: ChoreInput) {
     interval_days: input.frequencyType === 'every_n_days' ? input.intervalDays : null,
     anchor_date: input.frequencyType === 'every_n_days' ? input.anchorDate : null,
     category_id: input.categoryId,
+    notify_on_complete: input.notifyOnComplete,
   }
 }
 

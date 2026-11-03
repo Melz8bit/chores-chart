@@ -42,6 +42,7 @@ export function ChoreForm({
     existingChore?.anchor_date ?? new Date().toISOString().slice(0, 10),
   )
   const [categoryId, setCategoryId] = useState(existingChore?.category_id ?? '')
+  const [notifyOnComplete, setNotifyOnComplete] = useState(existingChore?.notify_on_complete ?? false)
   const [error, setError] = useState<string | null>(null)
 
   const saving = addChore.isPending || updateChore.isPending
@@ -67,6 +68,7 @@ export function ChoreForm({
       intervalDays: frequencyType === 'every_n_days' ? intervalDays : null,
       anchorDate: frequencyType === 'every_n_days' ? anchorDate : null,
       categoryId: categoryId || null,
+      notifyOnComplete,
     }
 
     try {
@@ -213,6 +215,21 @@ export function ChoreForm({
           rows={3}
           className="rounded-lg border border-slate-300 px-3 py-2 text-base"
         />
+      </label>
+
+      <label className="flex items-start gap-3 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={notifyOnComplete}
+          onChange={(e) => setNotifyOnComplete(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-indigo-600"
+        />
+        <span>
+          Notify parents when completed
+          <span className="block text-xs text-slate-500">
+            Sends a notification to every parent device registered in Settings &gt; Account.
+          </span>
+        </span>
       </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
