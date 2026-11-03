@@ -68,7 +68,8 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       Android only for now (any push-capable browser: Chrome/Edge/Samsung Internet/Firefox; not in-app
       browsers). Kids don't get accounts: notifications go to **devices a parent opts in**, never to the
       kiosk tablet (which is logged in as a parent but never registers).
-  - [ ] Phase 1 — Push infrastructure: hand-written `public/sw.js` (push + notificationclick);
+  - [x] Phase 1 — Push infrastructure (shipped 2026-11-03; migrations 0025-0026 applied, VAPID secrets
+        set, `send-push` deployed; test push confirmed on desktop Chrome, Android test pending): hand-written `public/sw.js` (push + notificationclick);
         `push_subscriptions` table (device -> parent, endpoint/keys, device+browser label, RLS parents
         only); Settings > Account "Notifications on this device" toggle (detects unsupported browsers),
         "Send test notification", registered-device list with Remove; VAPID keys (public as `VITE_`
