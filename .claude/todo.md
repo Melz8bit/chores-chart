@@ -50,7 +50,11 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       needs its home-screen shortcut re-added after deploy to pick up the new icon.
 - [x] Change "Chores" kiosk title (e.g. to the family name). Done 2026-11-02: the kiosk header shows
       `families.name`, which parents can now rename in Settings > Family (shared `useFamily` hook).
-- [ ] Login page polish: icon/branding + forgot-password flow
+- [x] Login page polish: icon/branding + forgot-password flow. Done 2026-11-03: shared `AuthShell`
+      (icon + name) on login/signup, `/forgot-password` and `/reset-password` pages (reset form only
+      shows when opened from a real recovery link, so the kiosk tablet can't bypass Settings > Account's
+      current-password check). Sign-up link removed from login; new-user signup is also disabled in
+      Supabase. Needs `/reset-password` in Supabase's redirect URL allowlist; reset email untested.
 - [ ] Let parents track their own chores, not just kids' — bigger than it looks: schema currently has
       `chores.assigned_member_id` reference only kids ("every chore assigned to exactly one kid" was a
       confirmed v1 decision), and kiosk/points/redemption flows all assume the assignee is a kid.
