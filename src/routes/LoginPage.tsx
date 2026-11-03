@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../hooks/useSession'
+import { AuthShell } from '../components/AuthShell'
 
 export function LoginPage() {
   const { session, loading: sessionLoading } = useSession()
@@ -31,18 +32,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-svh flex items-center justify-center bg-slate-50 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col gap-4"
-      >
-        <h1 className="text-2xl font-semibold text-slate-900">Log in</h1>
+    <AuthShell>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h1 className="text-xl font-semibold text-slate-900">Log in</h1>
 
         <label className="flex flex-col gap-1 text-sm text-slate-700">
           Email
           <input
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-base"
@@ -50,10 +49,16 @@ export function LoginPage() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm text-slate-700">
-          Password
+          <span className="flex items-center justify-between">
+            Password
+            <Link to="/forgot-password" className="text-indigo-600 font-medium">
+              Forgot password?
+            </Link>
+          </span>
           <input
             type="password"
             required
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-base"
@@ -69,11 +74,7 @@ export function LoginPage() {
         >
           {submitting ? 'Logging in…' : 'Log in'}
         </button>
-
-        <p className="text-sm text-slate-600 text-center">
-          No account? <Link to="/signup" className="text-indigo-600 font-medium">Sign up</Link>
-        </p>
       </form>
-    </div>
+    </AuthShell>
   )
 }

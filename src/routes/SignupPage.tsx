@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useSession } from '../hooks/useSession'
+import { AuthShell } from '../components/AuthShell'
 
 export function SignupPage() {
   const { session, loading: sessionLoading } = useSession()
@@ -39,9 +40,9 @@ export function SignupPage() {
 
   if (needsEmailConfirmation) {
     return (
-      <div className="min-h-svh flex items-center justify-center bg-slate-50 px-4">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900">Check your email</h1>
+      <AuthShell>
+        <div className="text-center flex flex-col gap-3">
+          <h1 className="text-xl font-semibold text-slate-900">Check your email</h1>
           <p className="text-slate-600">
             We sent a confirmation link to <span className="font-medium">{email}</span>. Confirm
             it, then come back and log in.
@@ -50,17 +51,14 @@ export function SignupPage() {
             Go to login
           </Link>
         </div>
-      </div>
+      </AuthShell>
     )
   }
 
   return (
-    <div className="min-h-svh flex items-center justify-center bg-slate-50 px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-slate-200 p-8 flex flex-col gap-4"
-      >
-        <h1 className="text-2xl font-semibold text-slate-900">Create your account</h1>
+    <AuthShell>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <h1 className="text-xl font-semibold text-slate-900">Create your account</h1>
 
         <label className="flex flex-col gap-1 text-sm text-slate-700">
           Email
@@ -99,6 +97,6 @@ export function SignupPage() {
           Already have an account? <Link to="/login" className="text-indigo-600 font-medium">Log in</Link>
         </p>
       </form>
-    </div>
+    </AuthShell>
   )
 }

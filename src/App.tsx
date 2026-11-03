@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './routes/LoginPage'
 import { SignupPage } from './routes/SignupPage'
+import { ForgotPasswordPage } from './routes/ForgotPasswordPage'
+import { ResetPasswordPage } from './routes/ResetPasswordPage'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { RequireFamily } from './routes/RequireFamily'
 import { KioskPage } from './routes/KioskPage'
@@ -25,6 +27,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route
           path="/"
