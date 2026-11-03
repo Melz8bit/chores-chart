@@ -69,13 +69,15 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       browsers). Kids don't get accounts: notifications go to **devices a parent opts in**, never to the
       kiosk tablet (which is logged in as a parent but never registers).
   - [x] Phase 1 — Push infrastructure (shipped 2026-11-03; migrations 0025-0026 applied, VAPID secrets
-        set, `send-push` deployed; test push confirmed on desktop Chrome, Android test pending): hand-written `public/sw.js` (push + notificationclick);
+        set, `send-push` deployed; test push confirmed on desktop Chrome and Android Chrome): hand-written `public/sw.js` (push + notificationclick);
         `push_subscriptions` table (device -> parent, endpoint/keys, device+browser label, RLS parents
         only); Settings > Account "Notifications on this device" toggle (detects unsupported browsers),
         "Send test notification", registered-device list with Remove; VAPID keys (public as `VITE_`
         build arg via `.env.production` + `compose.yml`, private in Supabase secrets); `send-push` Edge
         Function (deployed by the user via dashboard/CLI) that prunes dead subscriptions.
-  - [ ] Phase 2 — Per-chore notification: `chores.notify_on_complete` (default off) checkbox in
+  - [x] Phase 2 — Per-chore notification (2026-11-03; migrations 0027-0028 applied, Vault secrets
+        `project_url`/`push_webhook_secret` + `PUSH_WEBHOOK_SECRET` set, `send-push` redeployed with
+        Verify JWT off; completion push confirmed on desktop): `chores.notify_on_complete` (default off) checkbox in
         ChoreForm; trigger on completion -> `send-push` via `pg_net` ("Lucas finished Make bed (+5)").
         No notification on un-complete.
   - [ ] Phase 3 — Daily report: one family-wide time (`families` column, default 8pm, set in
