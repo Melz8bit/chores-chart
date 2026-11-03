@@ -43,8 +43,11 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       via Supabase confirmation links (secure email change is on, so both addresses must confirm; the UI
       says so), password change re-verifies the current password first. Error paths tested; the
       successful password change and the email-confirmation round trip are still untested.
-- [ ] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
-      manifest home-screen icon, see `public/manifest.webmanifest`)
+- [x] Create a real favicon/app icon (currently the placeholder Vite logo — also used as the PWA
+      manifest home-screen icon, see `public/manifest.webmanifest`). Done 2026-11-03: indigo checkmark
+      + gold star from Claude Design (`favicon.svg`, `icon-maskable.svg`), plus PNG exports (32, 180
+      apple-touch, 192, 512, 512 maskable) wired into the manifest and `index.html`. Kiosk tablet
+      needs its home-screen shortcut re-added after deploy to pick up the new icon.
 - [x] Change "Chores" kiosk title (e.g. to the family name). Done 2026-11-02: the kiosk header shows
       `families.name`, which parents can now rename in Settings > Family (shared `useFamily` hook).
 - [ ] Login page polish: icon/branding + forgot-password flow
