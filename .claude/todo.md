@@ -64,8 +64,27 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
       to a parent): `families.settings_pin`, never client-readable (column-level SELECT revoke), only
       exposed via `has_settings_pin()`/`verify_settings_pin()` boolean RPCs. Settings stays open until a
       PIN is set; once set, re-entered via a 4-digit keypad on every visit (no persistence).
-- [ ] Notifications on the parent app when a child completes a chore
-- [ ] Notification prompt asking a parent (in the parent app) to approve when a child wants to redeem points
+- [ ] Parent notifications + redemption approval (planned 2026-11-03). Web Push from the PWA, no APK.
+      Android only for now (any push-capable browser: Chrome/Edge/Samsung Internet/Firefox; not in-app
+      browsers). Kids don't get accounts: notifications go to **devices a parent opts in**, never to the
+      kiosk tablet (which is logged in as a parent but never registers).
+  - [ ] Phase 1 — Push infrastructure: hand-written `public/sw.js` (push + notificationclick);
+        `push_subscriptions` table (device -> parent, endpoint/keys, device+browser label, RLS parents
+        only); Settings > Account "Notifications on this device" toggle (detects unsupported browsers),
+        "Send test notification", registered-device list with Remove; VAPID keys (public as `VITE_`
+        build arg via `.env.production` + `compose.yml`, private in Supabase secrets); `send-push` Edge
+        Function (deployed by the user via dashboard/CLI) that prunes dead subscriptions.
+  - [ ] Phase 2 — Per-chore notification: `chores.notify_on_complete` (default off) checkbox in
+        ChoreForm; trigger on completion -> `send-push` via `pg_net` ("Lucas finished Make bed (+5)").
+        No notification on un-complete.
+  - [ ] Phase 3 — Daily report: one family-wide time (`families` column, default 8pm, set in
+        Settings > Family); each parent opts in/out in Settings > Account. Hourly `pg_cron` job sends
+        each opted-in parent a per-kid summary (chores done/missed, points earned, redemptions).
+  - [ ] Phase 4 — Redemption approval: `redemption_requests` (pending -> approved/denied); kiosk
+        redeem creates a request, points deducted only on approval, pending points held so they can't
+        be double-requested. Push to all registered parent devices; tap opens Approve/Deny. Approve
+        server-side requires either the Settings PIN (tablet) or the registered device's secret key
+        stored on that phone at registration (one-tap approve on parent phones).
 - [ ] Mandatory chores that must be completed before a child can redeem points
 
 ## Optional future ideas (not scheduled)
