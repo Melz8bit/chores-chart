@@ -35,6 +35,12 @@ There is no test runner configured yet.
 `.env` (gitignored) must define `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for the app to run against
 a real Supabase backend. Vite only exposes env vars prefixed `VITE_` to client code.
 
+`VITE_VAPID_PUBLIC_KEY` (optional) enables Web Push. Without it, Settings > Account says notifications
+aren't set up. Its private half and `VAPID_SUBJECT` live only in Supabase Edge Function secrets, used by
+`supabase/functions/send-push`. Edge Functions are deployed by the owner (dashboard or Supabase CLI), like
+migrations; the Supabase MCP connector has no permission on this project. Push is device-based
+(`push_subscriptions`): the kiosk tablet must never register.
+
 ## Deployment
 
 Self-hosted on the owner's Raspberry Pi, live at `chores.8bitcode.net`. Docker (`Dockerfile` + `compose.yml`,

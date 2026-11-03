@@ -1,6 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../hooks/useSession'
+import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
+import {
+  pushConfigured,
+  pushSupported,
+  useEnablePush,
+  useRegisteredDevices,
+  useRemoveDevice,
+  useSendTestPush,
+  useThisDeviceEndpoint,
+} from '../../hooks/usePushNotifications'
 
 function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
   const [email, setEmail] = useState('')
@@ -165,8 +175,118 @@ function ChangePasswordForm({ currentEmail }: { currentEmail: string }) {
   )
 }
 
+function NotificationsCard({ familyId }: { familyId: string }) {
+  const { data: thisEndpoint } = useThisDeviceEndpoint()
+  const { data: devices, isLoading } = useRegisteredDevices(familyId)
+  const enablePush = useEnablePush()
+  const removeDevice = useRemoveDevice()
+  const sendTest = useSendTestPush()
+
+  const thisDevice = devices?.find((device) => device.endpoint === thisEndpoint)
+  const error = enablePush.error ?? removeDevice.error ?? sendTest.error
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
+      <div>
+        <h3 className="text-sm font-medium text-slate-700">Notifications</h3>
+        <p className="text-sm text-slate-500">
+          Notifications go to devices, not accounts. Turn them on for each parent phone that should get
+          them.
+        </p>
+      </div>
+
+      {!pushSupported ? (
+        <p className="text-sm text-amber-700">
+          This browser can't receive notifications. Open {window.location.host} in Chrome, Samsung
+          Internet, or Firefox (not from inside another app) and turn them on there.
+        </p>
+      ) : !pushConfigured ? (
+        <p className="text-sm text-amber-700">Notifications aren't set up for this app yet.</p>
+      ) : thisDevice ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-green-700">This device gets notifications.</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              disabled={sendTest.isPending}
+              onClick={() => sendTest.mutate(thisDevice.endpoint)}
+              className="rounded-lg bg-indigo-600 text-white text-sm font-medium px-3 py-1.5 disabled:opacity-50"
+            >
+              {sendTest.isPending ? 'Sending…' : 'Send test notification'}
+            </button>
+            <button
+              type="button"
+              disabled={removeDevice.isPending}
+              onClick={() => removeDevice.mutate(thisDevice)}
+              className="text-sm font-medium text-slate-400 hover:text-red-600"
+            >
+              Turn off for this device
+            </button>
+          </div>
+          {sendTest.isSuccess && <p className="text-sm text-slate-500">Sent. It should appear in a few seconds.</p>}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-amber-700">
+            Don't turn this on for the shared kiosk tablet. Kids would see notifications and approval
+            requests meant for parents.
+          </p>
+          <button
+            type="button"
+            disabled={enablePush.isPending}
+            onClick={() => enablePush.mutate()}
+            className="self-start rounded-lg bg-indigo-600 text-white text-sm font-medium px-3 py-1.5 disabled:opacity-50"
+          >
+            {enablePush.isPending ? 'Turning on…' : 'Turn on notifications for this device'}
+          </button>
+        </div>
+      )}
+
+      {error && <p className="text-sm text-red-600">{error.message}</p>}
+
+      <div className="border-t border-slate-100 pt-3">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">Registered devices</h4>
+        {isLoading ? (
+          <p className="text-sm text-slate-500">Loading…</p>
+        ) : !devices || devices.length === 0 ? (
+          <p className="text-sm text-slate-500">No devices yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {devices.map((device) => (
+              <li key={device.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-700">
+                  {device.device_label}
+                  <span className="text-slate-400"> · {device.owner_name}</span>
+                  {device.endpoint === thisEndpoint && (
+                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                      This device
+                    </span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  disabled={removeDevice.isPending}
+                  onClick={() => {
+                    if (confirm(`Stop sending notifications to ${device.device_label}?`)) {
+                      removeDevice.mutate(device)
+                    }
+                  }}
+                  className="text-sm font-medium text-slate-400 hover:text-red-600"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function AccountPage() {
   const { session, loading } = useSession()
+  const { familyMember } = useCurrentFamilyMember()
   const email = session?.user.email
 
   if (loading || !email) {
@@ -178,6 +298,7 @@ export function AccountPage() {
       <p className="text-sm text-slate-500">
         These settings are for the parent account this device is logged in as.
       </p>
+      {familyMember && <NotificationsCard familyId={familyMember.family_id} />}
       <ChangeEmailForm currentEmail={email} />
       <ChangePasswordForm currentEmail={email} />
     </div>

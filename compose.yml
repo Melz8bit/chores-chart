@@ -7,6 +7,9 @@ services:
         # container runtime, so they're passed as build args, not env_file.
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        # Public half of the Web Push VAPID key pair (the private half lives
+        # only in Supabase Edge Function secrets).
+        VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
     ports:
       - '8001:80'
     restart: unless-stopped
