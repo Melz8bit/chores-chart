@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
 import { useHasSettingsPin, useVerifySettingsPin } from '../../hooks/useSettingsPin'
 import { PinKeypad } from '../../components/PinKeypad'
@@ -19,6 +19,9 @@ export function SettingsLayout() {
   const verifyPin = useVerifySettingsPin()
   const [unlocked, setUnlocked] = useState(false)
   const [pinError, setPinError] = useState<string | null>(null)
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const currentTab = TABS.find((tab) => pathname.startsWith(tab.to))
 
   async function handlePinComplete(pin: string) {
     setPinError(null)
@@ -65,7 +68,26 @@ export function SettingsLayout() {
         </NavLink>
       </header>
 
-      <nav className="flex gap-1 px-4 sm:px-8 pt-4 flex-wrap">
+      {/* Phones: one dropdown instead of tabs wrapping onto a second row. */}
+      <div className="sm:hidden px-4 pt-4 pb-3">
+        <label className="sr-only" htmlFor="settings-section">
+          Settings section
+        </label>
+        <select
+          id="settings-section"
+          value={currentTab?.to ?? ''}
+          onChange={(e) => navigate(e.target.value)}
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base font-medium text-slate-800"
+        >
+          {TABS.map((tab) => (
+            <option key={tab.to} value={tab.to}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <nav className="hidden sm:flex gap-1 px-8 pt-4">
         {TABS.map((tab) => (
           <NavLink
             key={tab.to}
