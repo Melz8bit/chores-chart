@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import confetti from 'canvas-confetti'
 import { supabase } from '../lib/supabase'
 import { useKioskBoard, type KioskBoardRow } from '../hooks/useKioskBoard'
@@ -10,6 +11,8 @@ import { useFullscreen } from '../hooks/useFullscreen'
 import { usePointsDay, useSetHoliday } from '../hooks/usePointsDay'
 import { useFamily } from '../hooks/useFamily'
 import { useHasSettingsPin } from '../hooks/useSettingsPin'
+import { usePendingRedemptions } from '../hooks/useRedemptionRequests'
+import { getApprovalKey } from '../hooks/usePushNotifications'
 import type { PointsDayKind } from '../lib/database.types'
 import { formatRolloverHour } from '../lib/schoolPoints'
 import { KidAvatar } from '../components/KidAvatar'
@@ -18,6 +21,7 @@ import { RedemptionModal } from '../components/RedemptionModal'
 import { RedemptionHistory } from '../components/RedemptionHistory'
 import { Modal } from '../components/Modal'
 import { PinKeypad } from '../components/PinKeypad'
+import { RedemptionDecision } from '../components/RedemptionDecision'
 
 interface KidBoard {
   id: string
@@ -156,6 +160,7 @@ export function KioskPage() {
   const [showHistory, setShowHistory] = useState(false)
   const [showHolidayModal, setShowHolidayModal] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close the mobile nav menu on outside tap or Escape.
@@ -177,6 +182,16 @@ export function KioskPage() {
   const { data: pointsDay } = usePointsDay()
   const { data: family } = useFamily(familyMember?.family_id)
   const { data: hasPin } = useHasSettingsPin(familyMember?.family_id)
+  const { data: pendingRedemptions = [] } = usePendingRedemptions(familyMember?.family_id)
+  const reviewingRequest = pendingRedemptions.find((r) => r.id === reviewingRequestId)
+
+  // A request approved from a parent's phone changes the kid's balance;
+  // refresh the board as soon as the pending list changes.
+  const queryClient = useQueryClient()
+  const pendingKey = pendingRedemptions.map((r) => r.id).join(',')
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['kioskBoard'] })
+  }, [pendingKey, queryClient])
 
   const isHoliday = pointsDay?.day_kind === 'holiday'
   // Only meaningful on a school day in school mode (or to undo a holiday).
@@ -372,6 +387,19 @@ export function KioskPage() {
                   </div>
                 </div>
 
+                {pendingRedemptions
+                  .filter((request) => request.family_member_id === kid.id)
+                  .map((request) => (
+                    <button
+                      key={request.id}
+                      type="button"
+                      onClick={() => setReviewingRequestId(request.id)}
+                      className="shrink-0 self-start rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800"
+                    >
+                      ⏳ {request.amount} points waiting for a parent
+                    </button>
+                  ))}
+
                 <div className="flex flex-col gap-4">
                   {groupByCategory(kid.chores).map((category) => (
                     <div key={category.id ?? 'uncategorized'}>
@@ -434,9 +462,38 @@ export function KioskPage() {
 
       {showRedeemModal && (
         <RedemptionModal
-          kids={kids.map((k) => ({ id: k.id, name: k.name, pointsBalance: k.pointsBalance }))}
+          kids={kids.map((k) => ({
+            id: k.id,
+            name: k.name,
+            available:
+              k.pointsBalance -
+              pendingRedemptions
+                .filter((r) => r.family_member_id === k.id)
+                .reduce((sum, r) => sum + r.amount, 0),
+          }))}
           onClose={() => setShowRedeemModal(false)}
         />
+      )}
+
+      {reviewingRequest && (
+        <Modal
+          title={`${reviewingRequest.kid_name} wants ${reviewingRequest.amount} points`}
+          onClose={() => setReviewingRequestId(null)}
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-slate-500">
+              Requested at{' '}
+              {new Date(reviewingRequest.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              . The points come off {reviewingRequest.kid_name}'s balance only when a parent approves.
+            </p>
+            <RedemptionDecision
+              request={reviewingRequest}
+              requirePin={!!hasPin}
+              deviceKey={getApprovalKey()}
+              onDecided={() => setReviewingRequestId(null)}
+            />
+          </div>
+        </Modal>
       )}
 
       {showHolidayModal && (

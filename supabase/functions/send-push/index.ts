@@ -5,7 +5,8 @@
 // - Server-triggered (x-push-secret header): database triggers call this via
 //   pg_net with just an event type and a row id; the details are looked up
 //   here. Currently: { type: 'chore_completed', completion_id } (0027) and
-//   { type: 'daily_report', family_id } (0029).
+//   { type: 'daily_report', family_id } (0029) and
+//   { type: 'redemption_requested', request_id } (0033).
 // - "Send test notification" (user JWT): a signed-in parent asks for a test
 //   push to their *own current device*, identified by its endpoint.
 //
@@ -164,6 +165,30 @@ async function handleDailyReport(familyId: string) {
   return json({ delivered })
 }
 
+// A kid asked to redeem points on the kiosk (0033). Goes to every registered
+// parent device; tapping opens the approve/deny page.
+async function handleRedemptionRequested(requestId: string) {
+  const { data: request } = await admin
+    .from('redemption_requests')
+    .select('id, family_id, amount, status, family_members!redemption_requests_family_member_id_fkey(display_name, points_balance)')
+    .eq('id', requestId)
+    .maybeSingle()
+  if (!request) return json({ error: 'Request not found' }, 404)
+  if (request.status !== 'pending') return json({ delivered: 0 })
+
+  const { data: rows } = await familySubscriptions(request.family_id)
+  if (!rows || rows.length === 0) return json({ delivered: 0 })
+
+  const kid = request.family_members as unknown as { display_name: string; points_balance: number } | null
+  const delivered = await sendToSubscriptions(rows, {
+    title: `🎁 ${kid?.display_name ?? 'A kid'} wants to redeem ${request.amount} points`,
+    body: `Balance: ${kid?.points_balance ?? '?'} points. Tap to approve or deny.`,
+    url: `/approve/${request.id}`,
+    tag: `redemption-${request.id}`,
+  })
+  return json({ delivered })
+}
+
 // Server-triggered requests. The secret only proves the caller is our own
 // database; the payload is just an id, and everything shown is looked up.
 async function handleServerEvent(req: Request) {
@@ -175,12 +200,16 @@ async function handleServerEvent(req: Request) {
     type?: string
     completion_id?: string
     family_id?: string
+    request_id?: string
   }
   if (body.type === 'chore_completed' && body.completion_id) {
     return handleChoreCompleted(body.completion_id)
   }
   if (body.type === 'daily_report' && body.family_id) {
     return handleDailyReport(body.family_id)
+  }
+  if (body.type === 'redemption_requested' && body.request_id) {
+    return handleRedemptionRequested(body.request_id)
   }
   return json({ error: 'Unknown event' }, 400)
 }

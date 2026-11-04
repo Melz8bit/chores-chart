@@ -6,6 +6,7 @@ import { useFamily, useSetDailyReportOptIn } from '../../hooks/useFamily'
 import { formatRolloverHour } from '../../lib/schoolPoints'
 import type { FamilyMember } from '../../lib/database.types'
 import {
+  getApprovalKey,
   pushConfigured,
   pushSupported,
   useEnablePush,
@@ -208,6 +209,22 @@ function NotificationsCard({ familyId }: { familyId: string }) {
       ) : thisDevice ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-green-700">This device gets notifications.</p>
+          {!getApprovalKey() && (
+            <div className="flex flex-col gap-2 rounded-lg bg-amber-50 p-3">
+              <p className="text-sm text-amber-800">
+                This device was registered before one-tap approvals existed. Set it up again to approve
+                redemption requests without the PIN.
+              </p>
+              <button
+                type="button"
+                disabled={enablePush.isPending}
+                onClick={() => enablePush.mutate()}
+                className="self-start rounded-lg bg-indigo-600 text-white text-sm font-medium px-3 py-1.5 disabled:opacity-50"
+              >
+                {enablePush.isPending ? 'Setting up…' : 'Set up one-tap approvals'}
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"

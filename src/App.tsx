@@ -7,6 +7,7 @@ import { ResetPasswordPage } from './routes/ResetPasswordPage'
 import { OnboardingPage } from './routes/OnboardingPage'
 import { RequireFamily } from './routes/RequireFamily'
 import { KioskPage } from './routes/KioskPage'
+import { ApprovePage } from './routes/ApprovePage'
 import { SettingsLayout } from './routes/settings/SettingsLayout'
 import { MembersPage } from './routes/settings/MembersPage'
 import { CategoriesPage } from './routes/settings/CategoriesPage'
@@ -66,6 +67,14 @@ function App() {
               >
                 <DashboardPage />
               </Suspense>
+            </RequireFamily>
+          }
+        />
+        <Route
+          path="/approve/:requestId"
+          element={
+            <RequireFamily>
+              <ApprovePage />
             </RequireFamily>
           }
         />

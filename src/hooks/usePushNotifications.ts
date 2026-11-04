@@ -14,6 +14,21 @@ export const pushSupported =
 
 export const pushConfigured = !!VAPID_PUBLIC_KEY
 
+// One-tap redemption approval (0033): registering a device also creates a
+// random key that stays on this device; the server keeps only its hash.
+// Whoever holds it can approve without the PIN, which is why the shared
+// kiosk tablet must never register.
+const APPROVAL_KEY_STORAGE = 'chores-approval-key'
+
+export function getApprovalKey(): string | null {
+  return localStorage.getItem(APPROVAL_KEY_STORAGE)
+}
+
+function newApprovalKey(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export interface RegisteredDevice {
   id: string
   endpoint: string
@@ -137,16 +152,19 @@ export function useEnablePush() {
       const keys = subscription.toJSON().keys
       if (!keys?.p256dh || !keys.auth) throw new Error('The browser returned an incomplete subscription.')
 
+      const approvalKey = newApprovalKey()
       const { error } = await supabase.rpc('register_push_subscription', {
         p_endpoint: subscription.endpoint,
         p_p256dh: keys.p256dh,
         p_auth: keys.auth,
         p_device_label: await describeThisDevice(),
+        p_approval_key: approvalKey,
       })
       if (error) {
         await subscription.unsubscribe()
         throw error
       }
+      localStorage.setItem(APPROVAL_KEY_STORAGE, approvalKey)
     },
     onSettled: invalidate,
   })
@@ -162,7 +180,10 @@ export function useRemoveDevice() {
       if (error) throw error
       if (pushSupported) {
         const subscription = await currentSubscription()
-        if (subscription?.endpoint === device.endpoint) await subscription.unsubscribe()
+        if (subscription?.endpoint === device.endpoint) {
+          await subscription.unsubscribe()
+          localStorage.removeItem(APPROVAL_KEY_STORAGE)
+        }
       }
     },
     onSettled: invalidate,

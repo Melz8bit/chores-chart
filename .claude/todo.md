@@ -87,17 +87,22 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
         `set_daily_report` RPC since `family_members` updates are column-limited). Report time set to
         noon for testing: confirm the push arrives on the phone, then set it back to 8pm. Still to
         do: commit/push the app changes, and redeploy `send-push` if not done yet.
-  - [ ] Phase 4 — Redemption approval: `redemption_requests` (pending -> approved/denied); kiosk
+  - [x] Phase 4 — Redemption approval: `redemption_requests` (pending -> approved/denied); kiosk
         redeem creates a request, points deducted only on approval, pending points held so they can't
         be double-requested. Push to all registered parent devices; tap opens Approve/Deny. Approve
         server-side requires either the Settings PIN (tablet) or the registered device's secret key
         stored on that phone at registration (one-tap approve on parent phones).
+        Done 2026-11-04 (migrations 0033-0034 applied, grants verified, `send-push` redeployed;
+        approval confirmed end-to-end with Test Family). Old instant `redeem_points` is revoked.
+        `/approve/:id` page; kiosk shows a pending chip per kid. Devices registered earlier need
+        "Set up one-tap approvals" in Settings > Account (the owner's phone still needs this).
 - [ ] Mandatory chores that must be completed before a child can redeem points
 
 ## Optional future ideas (not scheduled)
 
 - [ ] Safe testing environment: there's no staging backend, so local dev hits production Supabase. Quick
-      option: a separate test family signed up with an email alias (RLS isolates it). Fuller option: a
+      option: a separate test family signed up with an email alias (RLS isolates it). (Already exists:
+      "Test Family", 2 parents + 2 kids, in the live DB; "DeMello Tasks" is the real one.) Fuller option: a
       local Supabase stack (`supabase start` in Docker) with `supabase/migrations/` applied, to test
       migrations before they go live.
 

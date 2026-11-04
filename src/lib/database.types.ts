@@ -97,3 +97,17 @@ export interface PointTransaction {
   note: string | null
   created_at: string
 }
+
+export type RedemptionRequestStatus = 'pending' | 'approved' | 'denied'
+
+export interface RedemptionRequest {
+  id: string
+  family_id: string
+  family_member_id: string
+  amount: number
+  status: RedemptionRequestStatus
+  requested_at: string
+  decided_at: string | null
+  decided_by_member_id: string | null
+  point_transaction_id: string | null
+}

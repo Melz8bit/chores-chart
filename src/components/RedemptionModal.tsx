@@ -1,18 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { Modal } from './Modal'
-import { useRedeemPoints } from '../hooks/useRedeemPoints'
+import { useRequestRedemption } from '../hooks/useRedemptionRequests'
 
 interface KidOption {
   id: string
   name: string
-  pointsBalance: number
+  // Balance minus points already waiting on a parent's approval.
+  available: number
 }
 
 export function RedemptionModal({ kids, onClose }: { kids: KidOption[]; onClose: () => void }) {
-  const redeemPoints = useRedeemPoints()
+  const requestRedemption = useRequestRedemption()
   const [memberId, setMemberId] = useState(kids[0]?.id ?? '')
   const [amount, setAmount] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
 
   const selectedKid = kids.find((k) => k.id === memberId)
 
@@ -28,26 +30,43 @@ export function RedemptionModal({ kids, onClose }: { kids: KidOption[]; onClose:
       setError('Enter an amount greater than 0.')
       return
     }
-    if (amount > selectedKid.pointsBalance) {
-      setError(
-        `Not enough points yet! ${selectedKid.name} has ${selectedKid.pointsBalance} points — keep doing chores to earn more. 🌟`,
-      )
+    const notEnough = `Not enough points yet! ${selectedKid.name} has ${selectedKid.available} points to spend — keep doing chores to earn more. 🌟`
+    if (amount > selectedKid.available) {
+      setError(notEnough)
       return
     }
 
     try {
-      await redeemPoints.mutateAsync({ memberId, amount })
-      onClose()
+      await requestRedemption.mutateAsync({ memberId, amount })
+      setSent(true)
     } catch (err) {
       const message = err instanceof Error ? err.message : ''
       if (message.toLowerCase().includes('insufficient points')) {
-        setError(
-          `Not enough points yet! ${selectedKid.name} has ${selectedKid.pointsBalance} points — keep doing chores to earn more. 🌟`,
-        )
+        setError(notEnough)
       } else {
         setError(message || 'Something went wrong')
       }
     }
+  }
+
+  if (sent && selectedKid) {
+    return (
+      <Modal title="Request sent" onClose={onClose}>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p className="text-4xl">⏳</p>
+          <p className="text-slate-700">
+            {selectedKid.name}'s request for {amount} points is waiting for a parent to approve it.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-indigo-600 text-white font-medium px-4 py-2"
+          >
+            OK
+          </button>
+        </div>
+      </Modal>
+    )
   }
 
   return (
@@ -62,7 +81,7 @@ export function RedemptionModal({ kids, onClose }: { kids: KidOption[]; onClose:
           >
             {kids.map((kid) => (
               <option key={kid.id} value={kid.id}>
-                {kid.name} — {kid.pointsBalance} pts
+                {kid.name} — {kid.available} pts
               </option>
             ))}
           </select>
@@ -90,10 +109,10 @@ export function RedemptionModal({ kids, onClose }: { kids: KidOption[]; onClose:
           </button>
           <button
             type="submit"
-            disabled={redeemPoints.isPending || kids.length === 0}
+            disabled={requestRedemption.isPending || kids.length === 0}
             className="rounded-lg bg-indigo-600 text-white font-medium px-4 py-2 disabled:opacity-50"
           >
-            {redeemPoints.isPending ? 'Redeeming…' : 'Redeem'}
+            {requestRedemption.isPending ? 'Sending…' : 'Ask a parent'}
           </button>
         </div>
       </form>
