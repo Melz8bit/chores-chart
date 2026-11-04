@@ -17,6 +17,7 @@ export const pushConfigured = !!VAPID_PUBLIC_KEY
 export interface RegisteredDevice {
   id: string
   endpoint: string
+  family_member_id: string
   device_label: string
   created_at: string
   owner_name: string
@@ -91,12 +92,13 @@ export function useRegisteredDevices(familyId: string | undefined) {
     queryFn: async (): Promise<RegisteredDevice[]> => {
       const { data, error } = await supabase
         .from('push_subscriptions')
-        .select('id, endpoint, device_label, created_at, family_members(display_name)')
+        .select('id, endpoint, family_member_id, device_label, created_at, family_members(display_name)')
         .order('created_at')
       if (error) throw error
       return data.map((row) => ({
         id: row.id,
         endpoint: row.endpoint,
+        family_member_id: row.family_member_id,
         device_label: row.device_label,
         created_at: row.created_at,
         owner_name: (row.family_members as unknown as { display_name: string } | null)?.display_name ?? '',

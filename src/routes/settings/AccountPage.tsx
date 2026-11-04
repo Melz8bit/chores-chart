@@ -2,6 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useSession } from '../../hooks/useSession'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
+import { useFamily, useSetDailyReportOptIn } from '../../hooks/useFamily'
+import { formatRolloverHour } from '../../lib/schoolPoints'
+import type { FamilyMember } from '../../lib/database.types'
 import {
   pushConfigured,
   pushSupported,
@@ -284,6 +287,44 @@ function NotificationsCard({ familyId }: { familyId: string }) {
   )
 }
 
+function DailyReportCard({ member }: { member: FamilyMember }) {
+  const { data: family } = useFamily(member.family_id)
+  const { data: devices } = useRegisteredDevices(member.family_id)
+  const setOptIn = useSetDailyReportOptIn()
+
+  const myDeviceCount = devices?.filter((device) => device.family_member_id === member.id).length ?? 0
+  const reportTime = family ? formatRolloverHour(family.daily_report_hour) : '…'
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-2">
+      <label className="flex items-start gap-3 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={member.daily_report}
+          disabled={setOptIn.isPending}
+          onChange={(e) => setOptIn.mutate(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-indigo-600"
+        />
+        <span>
+          Send me a daily report at {reportTime}
+          <span className="block text-xs text-slate-500">
+            Each kid's chores done and still to do, plus points earned and spent today. The time is set
+            for the whole family in Settings &gt; Family.
+          </span>
+        </span>
+      </label>
+      {member.daily_report && devices && (
+        <p className={`text-sm ${myDeviceCount === 0 ? 'text-amber-700' : 'text-slate-500'}`}>
+          {myDeviceCount === 0
+            ? "You don't have any devices with notifications on yet, so the report has nowhere to go. Turn them on above from your phone."
+            : `Goes to your ${myDeviceCount === 1 ? 'registered device' : `${myDeviceCount} registered devices`}.`}
+        </p>
+      )}
+      {setOptIn.isError && <p className="text-sm text-red-600">{setOptIn.error.message}</p>}
+    </div>
+  )
+}
+
 export function AccountPage() {
   const { session, loading } = useSession()
   const { familyMember } = useCurrentFamilyMember()
@@ -299,6 +340,7 @@ export function AccountPage() {
         These settings are for the parent account this device is logged in as.
       </p>
       {familyMember && <NotificationsCard familyId={familyMember.family_id} />}
+      {familyMember && pushConfigured && <DailyReportCard member={familyMember} />}
       <ChangeEmailForm currentEmail={email} />
       <ChangePasswordForm currentEmail={email} />
     </div>

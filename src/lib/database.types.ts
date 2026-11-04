@@ -28,6 +28,8 @@ export interface Family {
   points_mode: PointsMode
   holiday_date: string | null
   rollover_hour: number
+  daily_report_hour: number
+  last_daily_report_date: string | null
   created_at: string
 }
 
@@ -40,6 +42,7 @@ export interface FamilyMember {
   emoji: string | null
   color: string | null
   points_balance: number
+  daily_report: boolean
   archived_at: string | null
   created_at: string
 }

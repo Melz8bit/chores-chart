@@ -4,7 +4,8 @@
 // Two ways in:
 // - Server-triggered (x-push-secret header): database triggers call this via
 //   pg_net with just an event type and a row id; the details are looked up
-//   here. Currently: { type: 'chore_completed', completion_id } (0027).
+//   here. Currently: { type: 'chore_completed', completion_id } (0027) and
+//   { type: 'daily_report', family_id } (0029).
 // - "Send test notification" (user JWT): a signed-in parent asks for a test
 //   push to their *own current device*, identified by its endpoint.
 //
@@ -117,6 +118,52 @@ async function handleChoreCompleted(completionId: string) {
   return json({ delivered })
 }
 
+interface DailyReportRow {
+  kid_name: string
+  chores_due: number
+  chores_done: number
+  still_to_do: string[]
+  points_earned: number
+  points_redeemed: number
+}
+
+// One block per kid, e.g.
+//   Lucas: 4/5 chores · +18 pts · spent 10
+//   Still to do: 🛏️ Make bed
+function describeKidDay(row: DailyReportRow): string {
+  const parts: string[] = []
+  if (row.chores_due > 0) parts.push(`${row.chores_done}/${row.chores_due} chores`)
+  parts.push(`+${row.points_earned} pts`)
+  if (row.points_redeemed > 0) parts.push(`spent ${row.points_redeemed}`)
+  const lines = [`${row.kid_name}: ${parts.join(' · ')}`]
+  if (row.still_to_do.length > 0) lines.push(`Still to do: ${row.still_to_do.join(', ')}`)
+  return lines.join('\n')
+}
+
+// Sent by the send_daily_reports cron sweep (0029). Goes only to devices of
+// parents who opted in (family_members.daily_report).
+async function handleDailyReport(familyId: string) {
+  const [{ data: report, error }, { data: rows }] = await Promise.all([
+    admin.rpc('get_daily_report', { p_family_id: familyId }),
+    admin
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth, family_members!inner(daily_report)')
+      .eq('family_id', familyId)
+      .eq('family_members.daily_report', true),
+  ])
+  if (error) return json({ error: error.message }, 500)
+  const kids = (report ?? []) as DailyReportRow[]
+  if (!rows || rows.length === 0 || kids.length === 0) return json({ delivered: 0 })
+
+  const delivered = await sendToSubscriptions(rows, {
+    title: "📋 Today's chores",
+    body: kids.map(describeKidDay).join('\n'),
+    url: '/dashboard',
+    tag: 'daily-report',
+  })
+  return json({ delivered })
+}
+
 // Server-triggered requests. The secret only proves the caller is our own
 // database; the payload is just an id, and everything shown is looked up.
 async function handleServerEvent(req: Request) {
@@ -124,9 +171,16 @@ async function handleServerEvent(req: Request) {
   if (!expected || req.headers.get('x-push-secret') !== expected) {
     return json({ error: 'Forbidden' }, 403)
   }
-  const body = (await req.json().catch(() => ({}))) as { type?: string; completion_id?: string }
+  const body = (await req.json().catch(() => ({}))) as {
+    type?: string
+    completion_id?: string
+    family_id?: string
+  }
   if (body.type === 'chore_completed' && body.completion_id) {
     return handleChoreCompleted(body.completion_id)
+  }
+  if (body.type === 'daily_report' && body.family_id) {
+    return handleDailyReport(body.family_id)
   }
   return json({ error: 'Unknown event' }, 400)
 }

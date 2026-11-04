@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { PointsMode } from '../../lib/database.types'
 import { useCurrentFamilyMember } from '../../hooks/useCurrentFamilyMember'
-import { useFamily, useRenameFamily } from '../../hooks/useFamily'
+import { useFamily, useRenameFamily, useSetDailyReportHour } from '../../hooks/useFamily'
 import { useHasSettingsPin, useSetSettingsPin } from '../../hooks/useSettingsPin'
 import { useSetPointsMode, useSetRolloverHour } from '../../hooks/usePointsDay'
 import { ROLLOVER_HOURS, formatRolloverHour } from '../../lib/schoolPoints'
@@ -126,7 +126,10 @@ function FamilyName({ familyId, name }: { familyId: string; name: string }) {
   )
 }
 
-const POINTS_MODES: { value: PointsMode; label: string; description: (rolloverHour: number) => string }[] = [
+// noon through 11pm, matching the families.daily_report_hour check (0029).
+const DAILY_REPORT_HOURS = Array.from({ length: 12 }, (_, i) => 12 + i)
+
+const POINTS_MODES:{ value: PointsMode; label: string; description: (rolloverHour: number) => string }[] = [
   {
     value: 'vacation',
     label: '☀️ Vacation',
@@ -154,6 +157,7 @@ export function FamilyPage() {
   const setPin = useSetSettingsPin(familyId)
   const setPointsMode = useSetPointsMode(familyId)
   const setRolloverHour = useSetRolloverHour(familyId)
+  const setDailyReportHour = useSetDailyReportHour(familyId)
 
   if (isLoading || !family) {
     return <p className="text-slate-500">Loading…</p>
@@ -235,6 +239,32 @@ export function FamilyPage() {
         )}
         {setRolloverHour.isError && (
           <p className="text-sm text-red-600 mt-2">{setRolloverHour.error.message}</p>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4">
+        <h3 className="text-sm font-medium text-slate-700 mb-2">Daily report</h3>
+        <p className="text-sm text-slate-500 mb-3">
+          Parents who turn on the daily report in Settings &gt; Account get a summary of each kid's day
+          at this time.
+        </p>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          Send at
+          <select
+            value={family.daily_report_hour}
+            disabled={setDailyReportHour.isPending}
+            onChange={(e) => setDailyReportHour.mutate(Number(e.target.value))}
+            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+          >
+            {DAILY_REPORT_HOURS.map((hour) => (
+              <option key={hour} value={hour}>
+                {formatRolloverHour(hour)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {setDailyReportHour.isError && (
+          <p className="text-sm text-red-600 mt-2">{setDailyReportHour.error.message}</p>
         )}
       </div>
 
