@@ -6,7 +6,7 @@ import { Emoji } from '../components/Emoji'
 
 export function DashboardPage() {
   const { data: history = [], isLoading: historyLoading } = usePointsHistory(14)
-  const { data: insights = [], isLoading: insightsLoading } = useDashboardInsights()
+  const { data: insights = [], isLoading: insightsLoading, isError: insightsFailed } = useDashboardInsights()
 
   const ignored = insights.filter((i) => i.insight_type === 'ignored')
   const underCompleted = insights.filter((i) => i.insight_type === 'under_completed')
@@ -40,6 +40,8 @@ export function DashboardPage() {
             </p>
             {insightsLoading ? (
               <p className="text-slate-500">Loading…</p>
+            ) : insightsFailed ? (
+              <p className="text-sm text-red-600">Couldn't load this right now. Try reloading the page.</p>
             ) : ignored.length === 0 ? (
               <p className="text-sm text-slate-400">Nothing flagged — nice work.</p>
             ) : (
@@ -69,6 +71,8 @@ export function DashboardPage() {
             </p>
             {insightsLoading ? (
               <p className="text-slate-500">Loading…</p>
+            ) : insightsFailed ? (
+              <p className="text-sm text-red-600">Couldn't load this right now. Try reloading the page.</p>
             ) : underCompleted.length === 0 ? (
               <p className="text-sm text-slate-400">Nothing flagged — nice work.</p>
             ) : (
