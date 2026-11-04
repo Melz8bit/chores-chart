@@ -85,8 +85,8 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
         each opted-in parent a per-kid summary (chores done/missed, points earned, redemptions).
         Built 2026-11-04 (migrations 0029-0032 applied, grants verified; opt-in goes through the
         `set_daily_report` RPC since `family_members` updates are column-limited). Report time set to
-        noon for testing: confirm the push arrives on the phone, then set it back to 8pm. Still to
-        do: commit/push the app changes, and redeploy `send-push` if not done yet.
+        noon for testing: confirm the push arrives on the phone, then set it back to 8pm. App
+        changes pushed (222942a) and `send-push` redeployed.
   - [x] Phase 4 — Redemption approval: `redemption_requests` (pending -> approved/denied); kiosk
         redeem creates a request, points deducted only on approval, pending points held so they can't
         be double-requested. Push to all registered parent devices; tap opens Approve/Deny. Approve
