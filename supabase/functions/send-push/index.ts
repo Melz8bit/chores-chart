@@ -6,7 +6,8 @@
 //   pg_net with just an event type and a row id; the details are looked up
 //   here. Currently: { type: 'chore_completed', completion_id } (0027) and
 //   { type: 'daily_report', family_id } (0029) and
-//   { type: 'redemption_requested', request_id } (0033).
+//   { type: 'redemption_requested', request_id } (0033) and
+//   { type: 'chore_approval_requested', request_id } (0036).
 // - "Send test notification" (user JWT): a signed-in parent asks for a test
 //   push to their *own current device*, identified by its endpoint.
 //
@@ -189,6 +190,33 @@ async function handleRedemptionRequested(requestId: string) {
   return json({ delivered })
 }
 
+// A kid tapped a chore that needs a parent's OK (0036). Goes to every
+// registered parent device; tapping opens the approve/deny page.
+async function handleChoreApprovalRequested(requestId: string) {
+  const { data: request } = await admin
+    .from('chore_approval_requests')
+    .select('id, family_id, points, status, chores(name, emoji), family_members!chore_approval_requests_family_member_id_fkey(display_name)')
+    .eq('id', requestId)
+    .maybeSingle()
+  if (!request) return json({ error: 'Request not found' }, 404)
+  if (request.status !== 'pending') return json({ delivered: 0 })
+
+  const { data: rows } = await familySubscriptions(request.family_id)
+  if (!rows || rows.length === 0) return json({ delivered: 0 })
+
+  const chore = request.chores as unknown as { name: string; emoji: string | null } | null
+  const kid = request.family_members as unknown as { display_name: string } | null
+  const choreName = [chore?.emoji, chore?.name].filter(Boolean).join(' ')
+  const points = request.points
+  const delivered = await sendToSubscriptions(rows, {
+    title: `🙋 ${kid?.display_name ?? 'A kid'} says they did ${choreName || 'a chore'}`,
+    body: `Approve to give +${points} ${points === 1 ? 'point' : 'points'}. Tap to approve or deny.`,
+    url: `/approve-chore/${request.id}`,
+    tag: `chore-approval-${request.id}`,
+  })
+  return json({ delivered })
+}
+
 // Server-triggered requests. The secret only proves the caller is our own
 // database; the payload is just an id, and everything shown is looked up.
 async function handleServerEvent(req: Request) {
@@ -210,6 +238,9 @@ async function handleServerEvent(req: Request) {
   }
   if (body.type === 'redemption_requested' && body.request_id) {
     return handleRedemptionRequested(body.request_id)
+  }
+  if (body.type === 'chore_approval_requested' && body.request_id) {
+    return handleChoreApprovalRequested(body.request_id)
   }
   return json({ error: 'Unknown event' }, 400)
 }

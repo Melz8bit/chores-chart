@@ -43,6 +43,7 @@ export function ChoreForm({
   )
   const [categoryId, setCategoryId] = useState(existingChore?.category_id ?? '')
   const [notifyOnComplete, setNotifyOnComplete] = useState(existingChore?.notify_on_complete ?? false)
+  const [requiresApproval, setRequiresApproval] = useState(existingChore?.requires_approval ?? false)
   const [error, setError] = useState<string | null>(null)
 
   const saving = addChore.isPending || updateChore.isPending
@@ -69,6 +70,7 @@ export function ChoreForm({
       anchorDate: frequencyType === 'every_n_days' ? anchorDate : null,
       categoryId: categoryId || null,
       notifyOnComplete,
+      requiresApproval,
     }
 
     try {
@@ -228,6 +230,22 @@ export function ChoreForm({
           Notify parents when completed
           <span className="block text-xs text-slate-500">
             Sends a notification to every parent device registered in Settings &gt; Account.
+          </span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-3 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          checked={requiresApproval}
+          onChange={(e) => setRequiresApproval(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-indigo-600"
+        />
+        <span>
+          Needs a parent's approval
+          <span className="block text-xs text-slate-500">
+            Good for bonus chores. Tapping it on the board asks a parent first, and the points are only
+            added once a parent approves (parent PIN on the tablet, or one tap on a registered phone).
           </span>
         </span>
       </label>

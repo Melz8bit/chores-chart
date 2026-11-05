@@ -66,6 +66,7 @@ export interface Chore {
   points: number
   school_points: number | null
   notify_on_complete: boolean
+  requires_approval: boolean
   frequency_type: ChoreFrequencyType
   times_per_period: number
   interval_days: number | null
@@ -110,4 +111,20 @@ export interface RedemptionRequest {
   decided_at: string | null
   decided_by_member_id: string | null
   point_transaction_id: string | null
+}
+
+export type ChoreApprovalStatus = 'pending' | 'approved' | 'denied'
+
+export interface ChoreApprovalRequest {
+  id: string
+  family_id: string
+  chore_id: string
+  family_member_id: string
+  period_start: string
+  points: number
+  status: ChoreApprovalStatus
+  requested_at: string
+  decided_at: string | null
+  decided_by_member_id: string | null
+  chore_completion_id: string | null
 }

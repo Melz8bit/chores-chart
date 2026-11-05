@@ -81,6 +81,11 @@ export function ChoresPage() {
                                 <Emoji emoji="🔔" className="h-3.5 w-3.5" />
                               </span>
                             )}
+                            {chore.requires_approval && (
+                              <span title="Needs a parent's approval" aria-label="Needs approval">
+                                <Emoji emoji="🙋" className="h-3.5 w-3.5" />
+                              </span>
+                            )}
                           </span>
                           <span className="text-sm font-semibold text-indigo-600 text-right">
                             {chore.points} pts

@@ -22,6 +22,8 @@ import { RedemptionHistory } from '../components/RedemptionHistory'
 import { Modal } from '../components/Modal'
 import { PinKeypad } from '../components/PinKeypad'
 import { RedemptionDecision } from '../components/RedemptionDecision'
+import { usePendingChoreApprovals, useRequestChoreApproval } from '../hooks/useChoreApprovals'
+import { ChoreApprovalDecision } from '../components/ChoreApprovalDecision'
 
 interface KidBoard {
   id: string
@@ -154,6 +156,7 @@ export function KioskPage() {
   const { isFullscreen, supported: fullscreenSupported, toggle: toggleFullscreen } = useFullscreen()
   const completeChore = useCompleteChore()
   const uncompleteChore = useUncompleteChore()
+  const requestChoreApproval = useRequestChoreApproval()
   const [pendingChoreId, setPendingChoreId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showRedeemModal, setShowRedeemModal] = useState(false)
@@ -161,6 +164,7 @@ export function KioskPage() {
   const [showHolidayModal, setShowHolidayModal] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null)
+  const [reviewingChoreRequestId, setReviewingChoreRequestId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close the mobile nav menu on outside tap or Escape.
@@ -184,11 +188,13 @@ export function KioskPage() {
   const { data: hasPin } = useHasSettingsPin(familyMember?.family_id)
   const { data: pendingRedemptions = [] } = usePendingRedemptions(familyMember?.family_id)
   const reviewingRequest = pendingRedemptions.find((r) => r.id === reviewingRequestId)
+  const { data: pendingChoreApprovals = [] } = usePendingChoreApprovals(familyMember?.family_id)
+  const reviewingChoreRequest = pendingChoreApprovals.find((r) => r.id === reviewingChoreRequestId)
 
-  // A request approved from a parent's phone changes the kid's balance;
-  // refresh the board as soon as the pending list changes.
+  // A request approved from a parent's phone changes the kid's balance (and
+  // the chore's state); refresh the board as soon as a pending list changes.
   const queryClient = useQueryClient()
-  const pendingKey = pendingRedemptions.map((r) => r.id).join(',')
+  const pendingKey = [...pendingRedemptions, ...pendingChoreApprovals].map((r) => r.id).join(',')
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ['kioskBoard'] })
   }, [pendingKey, queryClient])
@@ -217,6 +223,11 @@ export function KioskPage() {
   async function handleComplete(chore: KioskBoardRow, memberId: string, buttonEl: HTMLButtonElement) {
     setPendingChoreId(chore.chore_id)
     try {
+      if (chore.requires_approval) {
+        // No points (or confetti) yet: this asks a parent.
+        await requestChoreApproval.mutateAsync({ choreId: chore.chore_id, memberId })
+        return
+      }
       await completeChore.mutateAsync({ choreId: chore.chore_id, memberId })
       fireConfetti(buttonEl)
     } catch (err) {
@@ -408,10 +419,15 @@ export function KioskPage() {
                       </h3>
                       <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] content-start gap-3">
                         {category.chores.map((chore) => {
-                          const done = chore.remaining <= 0
+                          // Requests waiting for a parent take up their rep, so
+                          // a kid can't ask twice for the same one.
+                          const done = chore.remaining - chore.pending_count <= 0
                           const pending = pendingChoreId === chore.chore_id
+                          const waitingRequest = pendingChoreApprovals.find(
+                            (r) => r.chore_id === chore.chore_id && r.family_member_id === kid.id,
+                          )
                           return (
-                            <div key={chore.chore_id} className="relative">
+                            <div key={chore.chore_id} className="relative flex flex-col gap-1.5">
                               <button
                                 type="button"
                                 disabled={done || pending}
@@ -431,7 +447,20 @@ export function KioskPage() {
                                   {chore.times_per_period > 1 &&
                                     ` · ${chore.completed_count}/${chore.times_per_period}`}
                                 </span>
+                                {chore.requires_approval && (
+                                  <span className="text-xs text-amber-700">Parent approves</span>
+                                )}
                               </button>
+
+                              {waitingRequest && (
+                                <button
+                                  type="button"
+                                  onClick={() => setReviewingChoreRequestId(waitingRequest.id)}
+                                  className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"
+                                >
+                                  ⏳ Waiting for a parent
+                                </button>
+                              )}
 
                               {chore.completed_count > 0 && (
                                 <button
@@ -491,6 +520,35 @@ export function KioskPage() {
               requirePin={!!hasPin}
               deviceKey={getApprovalKey()}
               onDecided={() => setReviewingRequestId(null)}
+            />
+          </div>
+        </Modal>
+      )}
+
+      {reviewingChoreRequest && (
+        <Modal
+          title={`${reviewingChoreRequest.kid_name} did ${reviewingChoreRequest.chore_name}?`}
+          onClose={() => setReviewingChoreRequestId(null)}
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-slate-500">
+              Tapped at{' '}
+              {new Date(reviewingChoreRequest.requested_at).toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+              . Approving adds {reviewingChoreRequest.points}{' '}
+              {reviewingChoreRequest.points === 1 ? 'point' : 'points'} to {reviewingChoreRequest.kid_name}'s
+              balance.
+            </p>
+            <ChoreApprovalDecision
+              request={reviewingChoreRequest}
+              requirePin={!!hasPin}
+              deviceKey={getApprovalKey()}
+              onDecided={(approved) => {
+                setReviewingChoreRequestId(null)
+                if (approved) confetti({ particleCount: 90, spread: 80 })
+              }}
             />
           </div>
         </Modal>

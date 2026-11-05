@@ -22,6 +22,9 @@ export interface KioskBoardRow {
   remaining: number
   period_start: string
   period_end: string
+  requires_approval: boolean
+  // Requests waiting for a parent in the current period (approval chores only).
+  pending_count: number
 }
 
 export function useKioskBoard() {
