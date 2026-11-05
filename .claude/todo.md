@@ -96,13 +96,19 @@ Full design plan: see conversation history / `C:\Users\nival\.claude\plans\this-
         approval confirmed end-to-end with Test Family). Old instant `redeem_points` is revoked.
         `/approve/:id` page; kiosk shows a pending chip per kid. Devices registered earlier need
         "Set up one-tap approvals" in Settings > Account (the owner's phone still needs this).
-- [ ] Per-chore parent approval (2026-11-05), mostly for bonus chores: a chore with "Needs a parent's
+- [x] Per-chore parent approval (2026-11-05), mostly for bonus chores: a chore with "Needs a parent's
       approval" (`chores.requires_approval`) becomes a `chore_approval_requests` row when tapped, and the
       completion + points are only written on approval (Settings PIN on the kiosk, one tap on a
       registered phone via `/approve-chore/:id`, same check as redemptions). `complete_chore` refuses
       these chores so the client can't skip the request. Points/period are locked in at request time.
-      Built and pushed. Needs migrations 0036-0037 applied, grants verified and `send-push`
-      redeployed; mark done after an end-to-end check with Test Family.
+      Migrations 0036-0037 applied, `send-push` redeployed, confirmed end-to-end. The kiosk board
+      always asks for the PIN (never uses the device key); one-tap approval only on the push pages.
+      Open question (owner deciding as they use it): denials free the slot, so a kid can re-ask
+      after a denial. Options if that's abused: count denials toward the daily limit, or a cooldown.
+- [ ] Owner's phone shows the app icon inside a white circle (the manifest's full-bleed maskable icon
+      is correct and live). Likely a shortcut instead of a full Chrome install, or an install from
+      before the Nov 3 icon. Fix: remove it, reinstall from Chrome via "Install app", then re-enable
+      notifications + one-tap approvals in Settings > Account.
 - [ ] Mandatory chores that must be completed before a child can redeem points
 
 ## Optional future ideas (not scheduled)
