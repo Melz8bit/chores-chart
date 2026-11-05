@@ -12,7 +12,6 @@ import { usePointsDay, useSetHoliday } from '../hooks/usePointsDay'
 import { useFamily } from '../hooks/useFamily'
 import { useHasSettingsPin } from '../hooks/useSettingsPin'
 import { usePendingRedemptions } from '../hooks/useRedemptionRequests'
-import { getApprovalKey } from '../hooks/usePushNotifications'
 import type { PointsDayKind } from '../lib/database.types'
 import { formatRolloverHour } from '../lib/schoolPoints'
 import { KidAvatar } from '../components/KidAvatar'
@@ -423,7 +422,9 @@ export function KioskPage() {
                           // a kid can't ask twice for the same one.
                           const done = chore.remaining - chore.pending_count <= 0
                           const pending = pendingChoreId === chore.chore_id
-                          const waitingRequest = pendingChoreApprovals.find(
+                          // Oldest first; can be several (multi-rep chores, or
+                          // requests left from an earlier period).
+                          const waitingRequests = pendingChoreApprovals.filter(
                             (r) => r.chore_id === chore.chore_id && r.family_member_id === kid.id,
                           )
                           return (
@@ -452,13 +453,14 @@ export function KioskPage() {
                                 )}
                               </button>
 
-                              {waitingRequest && (
+                              {waitingRequests.length > 0 && (
                                 <button
                                   type="button"
-                                  onClick={() => setReviewingChoreRequestId(waitingRequest.id)}
+                                  onClick={() => setReviewingChoreRequestId(waitingRequests[0].id)}
                                   className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"
                                 >
                                   ⏳ Waiting for a parent
+                                  {waitingRequests.length > 1 && ` (${waitingRequests.length})`}
                                 </button>
                               )}
 
@@ -515,10 +517,13 @@ export function KioskPage() {
               {new Date(reviewingRequest.requested_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               . The points come off {reviewingRequest.kid_name}'s balance only when a parent approves.
             </p>
+            {/* Never this device's approval key here: kids use the board, even
+                on a parent's registered computer, so it always takes the PIN.
+                One-tap approval is only on the pages the notifications open. */}
             <RedemptionDecision
               request={reviewingRequest}
               requirePin={!!hasPin}
-              deviceKey={getApprovalKey()}
+              deviceKey={null}
               onDecided={() => setReviewingRequestId(null)}
             />
           </div>
@@ -544,7 +549,7 @@ export function KioskPage() {
             <ChoreApprovalDecision
               request={reviewingChoreRequest}
               requirePin={!!hasPin}
-              deviceKey={getApprovalKey()}
+              deviceKey={null}
               onDecided={(approved) => {
                 setReviewingChoreRequestId(null)
                 if (approved) confetti({ particleCount: 90, spread: 80 })
